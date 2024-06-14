@@ -1,0 +1,9 @@
+[package]
+name = "unimake"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+kit = { path = "../kit" }
+rustpython = { version = "0.3.1", features = ["rustpython-stdlib", "ssl", "default", "importlib"] }
+ahash = "0.8.11"
