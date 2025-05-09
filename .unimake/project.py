@@ -1,8 +1,25 @@
+import socket
 from asyncio.tasks import Task
 from umk import project
 # print(dir(project.Contributor))
 
-print(project.Contributor())
+p = project.Contributor(
+    name="John Doe",
+    emails=["jd@google.com"],
+    socials={"twitter": "https://twitter.com/jd"},
+)
+# p = project.Contributor(
+    # name="John Doe",
+    # socials={
+    #     "twitter": "https://twitter.com/jd",
+    #     "github": 2,
+    # }
+# )
+# p.name = "John Doe"
+# print(f"Contributor", dir(p))
+p.emails = ["hello@mail.ru", "my@gmail.net"]
+p.emails.append("job@apple.com")
+print(p.emails)
 # joe = project.Contributor("Joe", emails=["joe@email.com"])
 # print(joe.name)
 

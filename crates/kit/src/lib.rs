@@ -1,25 +1,27 @@
-use rustpython::vm::{builtins::PyModule, pymodule, PyRef, VirtualMachine};
-use rustpython_vm::AsObject;
-use rustpython_vm::function::PySetterValue;
+use rustpython::vm::{PyRef, VirtualMachine, builtins::PyModule, pymodule};
+use rustpython_vm::convert::ToPyObject;
 
-pub mod project;
-pub mod runtime;
+mod project;
 
 #[pymodule(name = "umk")]
-mod _module { use super::pymodule; }
+mod umk {}
 
-fn nest(vm: &VirtualMachine, root: &PyRef<PyModule>, child: PyRef<PyModule>, name: &str) {
-    let child = PySetterValue::Assign(child.into());
-    let name = vm.new_pyobj(name).as_interned_str(vm).unwrap();
-    root.as_object().generic_setattr(name, child, vm)
-        .expect("Failed to nest framework module");
+pub fn package(vm: &VirtualMachine) -> PyRef<PyModule> {
+    let root = umk::make_module(vm);
+    {
+        let module = project::module(vm);
+        root.dict()
+            .set_item(module.name.unwrap(), module.to_pyobject(vm), vm)
+            .expect("Failed to insert 'project' to framework");
+    }
+    root
 }
 
-pub fn module(vm: &VirtualMachine) -> PyRef<PyModule> {
-    let root = _module::make_module(vm);
-
-    let (n, m) = project::module(vm);
-    nest(vm, &root, m, n);
-
-    return root;
-}
+// fn emplace(vm: &VirtualMachine, root: &PyRef<PyModule>, child: PyRef<PyModule>, name: &str) {
+//     let child = PySetterValue::Assign(child.into());
+//     let name = vm.new_pyobj(name).as_interned_str(vm).unwrap();
+//     root.as_object()
+//         .generic_setattr(name, child, vm)
+//         .expect("Failed to nest framework module");
+// }
+//
