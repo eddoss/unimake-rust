@@ -1,43 +1,17 @@
-import socket
-from asyncio.tasks import Task
 from umk import project
-# print(dir(project.Contributor))
 
-p = project.Contributor(
-    name="John Doe",
-    emails=["jd@google.com"],
-    socials={"twitter": "https://twitter.com/jd"},
+p = project.Info(
+    name="gl",
+    version="0.1.0",
+    title="Open Graphics Library",
+    description="Open Graphics Library for C",
 )
-# p = project.Contributor(
-    # name="John Doe",
-    # socials={
-    #     "twitter": "https://twitter.com/jd",
-    #     "github": 2,
-    # }
-# )
-# p.name = "John Doe"
-# print(f"Contributor", dir(p))
-p.emails = ["hello@mail.ru", "my@gmail.net"]
-p.emails.append("job@apple.com")
-print(p.emails)
-# joe = project.Contributor("Joe", emails=["joe@email.com"])
-# print(joe.name)
+p.contributors = [
+    project.Contributor("John Doe", ["jd@google.com"], {"twitter": "https://twitter.com/jd"})
+]
 
-# print(dir(umk))
-# print("project" in dir(umk))
-# print(dir(umk.project))
-# print(type(project))
-# print(dir(project))
-# from umk import project as pro
-#
-# p = pro.project()
-# p.show()
-#
-#
-# @pro.empty
-# def _():
-#     print(__file__)
-
+print(p)
+print(p.contributors)
 
 # @pro.empty
 # def _(s: umk.Project):

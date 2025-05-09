@@ -1,14 +1,19 @@
 use rustpython::vm::builtins::PyModule;
-use rustpython::vm::{PyRef, VirtualMachine, pymodule};
+use rustpython::vm::{pymodule, PyRef, VirtualMachine};
+use rustpython_vm::builtins::{PyListRef, PyStr};
+use rustpython_vm::PyObjectRef;
 
 #[pymodule(name = "project")]
 mod _module {
-    use super::args;
-    use rustpython::vm::builtins::{PyDict, PyList, PyListRef, PyStr, PyStrRef};
+    use super::{args, panic_with_trace};
+    use core;
+    use rustpython::vm::builtins::{PyDict, PyDictRef, PyListRef, PyStr, PyStrRef};
     use rustpython::vm::common::lock::PyRwLock;
+    use rustpython::vm::convert::ToPyObject;
     use rustpython::vm::types::{Constructor, DefaultConstructor, Initializer, Representable};
-    use rustpython::vm::{Py, PyPayload, PyRef, PyResult, VirtualMachine, pyclass};
-    use std::collections::HashMap;
+    use rustpython::vm::AsObject;
+    use rustpython::vm::{pyclass, Py, PyPayload, PyRef, PyResult, VirtualMachine};
+
 
     //////////////////////////////////////////////////////////////////
     // Contributor
@@ -18,17 +23,13 @@ mod _module {
     #[pyclass(name = "Contributor")]
     #[derive(Debug, PyPayload)]
     pub struct Contributor {
-        name: PyRwLock<PyStr>,
-        emails: PyRwLock<PyList>,
-        socials: PyRwLock<PyDict>,
+        core: PyRwLock<core::Contributor>,
     }
 
     impl Default for Contributor {
         fn default() -> Self {
             Contributor {
-                name: PyRwLock::new(PyStr::from("")),
-                emails: PyRwLock::new(PyList::default()),
-                socials: PyRwLock::new(PyDict::default()),
+                core: PyRwLock::new(core::Contributor::default()),
             }
         }
     }
@@ -38,10 +39,7 @@ mod _module {
     impl Representable for Contributor {
         #[inline]
         fn repr_str(zelf: &Py<Self>, _vm: &VirtualMachine) -> PyResult<String> {
-            Ok(format!(
-                "{MODULE_NAME}.Contributor({})",
-                zelf.name.read().to_string()
-            ))
+            Ok(zelf.core.read().to_string())
         }
     }
 
@@ -49,81 +47,88 @@ mod _module {
         type Args = args::ContributorInit;
 
         fn init(zelf: PyRef<Self>, args: Self::Args, vm: &VirtualMachine) -> PyResult<()> {
-            *zelf.name.write() = PyStr::from(args.name.unwrap_or_default());
-            match args.emails {
-                None => *zelf.emails.write() = PyList::default(),
-                Some(strings) => {
-                    let refs: Vec<_> = strings
-                        .iter()
-                        .map(|s| PyStr::from(s.as_str()).into_pyobject(vm))
-                        .collect();
-                    *zelf.emails.write() = PyList::from(refs);
-                }
-            }
+            let mut target = core::Contributor::default();
+            target.name = args.name.unwrap_or_default();
+            target.emails = args.emails.unwrap_or_default();
             match args.socials {
-                None => {
-                    *zelf.socials.write() = PyDict::default();
-                }
+                None => {}
                 Some(dict) => {
-                    let mut values: HashMap<String, String> = HashMap::new();
                     for (key, value) in dict.into_iter() {
                         if let (Ok(k), Ok(v)) = (key.str(vm), value.str(vm)) {
-                            values.insert(k.to_string(), v.to_string());
+                            target.socials.insert(k.to_string(), v.to_string());
                         }
                     }
-                    let dict = PyDict::default();
-                    for (k, v) in values {
-                        dict.get_or_insert(vm, PyStr::from(k).into_pyobject(vm), || {
-                            PyStr::from(v).into_pyobject(vm)
-                        })?;
-                    }
-                    *zelf.socials.write() = dict;
                 }
             }
+            *zelf.core.write() = target;
             Ok(())
         }
     }
 
     #[pyclass(with(Constructor, Initializer, Representable))]
     impl Contributor {
-        #[pymethod]
-        pub fn show(&self) {
-            println!("Call Contributor.show");
+        pub fn from_core(value: &core::Contributor) -> Self {
+            Self {
+                core: PyRwLock::new(value.clone())
+            }
         }
 
         #[pygetset]
         pub fn name(&self) -> PyStr {
-            PyStr::from(self.name.read().to_string())
+            let core = self.core.read();
+            PyStr::from(core.name.as_str())
         }
 
         #[pygetset(setter)]
         pub fn set_name(&self, value: PyStrRef, _vm: &VirtualMachine) -> PyResult<()> {
-            *self.name.write() = value.as_str().into();
+            self.core.write().name = value.to_string();
             Ok(())
         }
 
         #[pygetset]
         pub fn emails(&self, vm: &VirtualMachine) -> PyListRef {
-            println!("Call Contributor.emails(getter)");
-            vm.ctx
-                .new_list(self.emails.write().borrow_vec().to_vec())
-                .into()
+            let refs = self
+                .core
+                .read()
+                .emails
+                .iter()
+                .map(|v| PyStr::from(v.as_str()).into_ref(&vm.ctx).into())
+                .collect();
+            vm.ctx.new_list(refs)
         }
 
         #[pygetset(setter)]
         pub fn set_emails(&self, value: PyListRef, vm: &VirtualMachine) -> PyResult<()> {
-            println!("Call Contributor.emails(setter)");
-            value
+            super::validate_string_list(vm, &value, "Contributor.emails: expect strings");
+            self.core.write().emails = value
                 .borrow_vec()
                 .iter()
-                .for_each(|v| match v.downcast_ref::<PyStr>() {
-                    Some(_) => {}
-                    None => {
-                        super::tracepoint(vm);
-                        panic!("Contributor.email: expect strings, but given {:?}", v);
-                    }
-                });
-            *self.emails.write() = PyList::from(value.borrow_vec().to_vec());
+                .filter_map(|v| v.downcast_ref::<PyStr>())
+                .map(|v| v.to_string())
+                .collect();
+            Ok(())
+        }
+
+        #[pygetset]
+        pub fn socials(&self, vm: &VirtualMachine) -> PyDictRef {
+            let dict = PyDict::new_ref(&vm.ctx);
+            for (key, value) in self.core.read().socials.iter() {
+                let k = vm.ctx.new_str(key.as_str());
+                let v = vm.ctx.new_str(value.as_str());
+                dict.set_item(k.as_object(), v.to_pyobject(vm), vm).unwrap();
+            }
+            dict.into()
+        }
+
+        #[pygetset(setter)]
+        pub fn set_socials(&self, value: PyDictRef, vm: &VirtualMachine) -> PyResult<()> {
+            let mut core = self.core.write();
+            core.socials.clear();
+            value.into_iter().for_each(|(k, v)| {
+                let key = super::validate_string(vm, &k, "Contributor.socials: expect string key");
+                let value = super::validate_string(vm, &v, "Contributor.socials: expect string value");
+                core.socials.insert(key, value);
+            });
             Ok(())
         }
     }
@@ -131,24 +136,151 @@ mod _module {
     //////////////////////////////////////////////////////////////////
     // Info
     //////////////////////////////////////////////////////////////////
+
+    #[pyattr]
+    #[pyclass(name = "Info")]
+    #[derive(Debug, PyPayload)]
+    pub struct Info {
+        core: PyRwLock<core::Info>,
+    }
+
+    impl Default for Info {
+        fn default() -> Self {
+            Info {
+                core: PyRwLock::new(core::Info::default()),
+            }
+        }
+    }
+
+    impl DefaultConstructor for Info {}
+
+    impl Representable for Info {
+        #[inline]
+        fn repr_str(zelf: &Py<Self>, _vm: &VirtualMachine) -> PyResult<String> {
+            Ok(zelf.core.read().to_string())
+        }
+    }
+
+    impl Initializer for Info {
+        type Args = args::InfoInit;
+
+        fn init(zelf: PyRef<Self>, args: Self::Args, _: &VirtualMachine) -> PyResult<()> {
+            let mut target = core::Info::default();
+            target.name = args.name.unwrap_or_default();
+            target.version = args.version.unwrap_or_default();
+            target.title = args.title.unwrap_or_default();
+            target.description = args.description.unwrap_or_default();
+            // match args.contributors {
+            //     None => {}
+            //     Some(dict) => {
+            //         for (key, value) in dict.into_iter() {
+            //             if let (Ok(k), Ok(v)) = (key.str(vm), value.str(vm)) {
+            //                 target.socials.insert(k.to_string(), v.to_string());
+            //             }
+            //         }
+            //     }
+            // }
+            *zelf.core.write() = target;
+            Ok(())
+        }
+    }
+
+    #[pyclass(with(Constructor, Initializer, Representable))]
+    impl Info {
+        #[pymethod]
+        pub fn show(&self) {
+            println!("Call Contributor.show");
+        }
+
+        #[pygetset]
+        pub fn name(&self) -> PyStr {
+            let core = self.core.read();
+            PyStr::from(core.name.as_str())
+        }
+
+        #[pygetset(setter)]
+        pub fn set_name(&self, value: PyStrRef, _vm: &VirtualMachine) -> PyResult<()> {
+            self.core.write().name = value.to_string();
+            Ok(())
+        }
+
+        #[pygetset]
+        pub fn version(&self) -> PyStr {
+            let core = self.core.read();
+            PyStr::from(core.version.as_str())
+        }
+
+        #[pygetset(setter)]
+        pub fn set_version(&self, value: PyStrRef, _vm: &VirtualMachine) -> PyResult<()> {
+            self.core.write().version = value.to_string();
+            Ok(())
+        }
+
+        #[pygetset]
+        pub fn description(&self) -> PyStr {
+            let core = self.core.read();
+            PyStr::from(core.description.as_str())
+        }
+
+        #[pygetset(setter)]
+        pub fn set_description(&self, value: PyStrRef, _vm: &VirtualMachine) -> PyResult<()> {
+            self.core.write().description = value.to_string();
+            Ok(())
+        }
+
+        #[pygetset]
+        pub fn title(&self) -> PyStr {
+            let core = self.core.read();
+            PyStr::from(core.title.as_str())
+        }
+
+        #[pygetset(setter)]
+        pub fn set_title(&self, value: PyStrRef, _vm: &VirtualMachine) -> PyResult<()> {
+            self.core.write().title = value.to_string();
+            Ok(())
+        }
+
+        #[pygetset]
+        pub fn contributors(&self, vm: &VirtualMachine) -> PyListRef {
+            let refs = self.core.read().contributors.iter().map(|v| {
+                Contributor::from_core(v).to_pyobject(&vm)
+            }).collect();
+            vm.ctx.new_list(refs)
+        }
+
+        #[pygetset(setter)]
+        pub fn set_contributors(&self, value: PyListRef, vm: &VirtualMachine) -> PyResult<()> {
+            self.core.write().contributors = value
+                .borrow_vec()
+                .iter()
+                .map(|v| {
+                    match v.downcast_ref::<Contributor>() {
+                        Some(obj) => obj.core.read().clone(),
+                        None => {
+                            panic_with_trace(vm, format!("{MODULE_NAME}.Info: expect Contributors, got {}", v.class().name()).as_str());
+                            core::Contributor::default()
+                        }
+                    }
+                })
+                .collect();
+            Ok(())
+        }
+
+        // #[pygetset(setter)]
+        // pub fn contrib(&self, name: PyStrRef, _vm: &VirtualMachine) -> PyResult<()> {
+        //     self.core.write().title = value.to_string();
+        //     Ok(())
+        // }
+    }
 }
 
 pub fn module(vm: &VirtualMachine) -> PyRef<PyModule> {
     _module::make_module(vm)
 }
 
-fn tracepoint(vm: &VirtualMachine) {
-    let frame = vm.current_frame().unwrap();
-    let location = frame.current_location();
-    println!(
-        "[TRACE] executing in {}:{} at {}",
-        frame.code.source_path, location.row, location.column
-    );
-}
-
 mod args {
-    use rustpython_vm::FromArgs;
     use rustpython_vm::builtins::PyDictRef;
+    use rustpython_vm::FromArgs;
 
     #[derive(FromArgs, Debug)]
     pub struct ContributorInit {
@@ -161,4 +293,71 @@ mod args {
         #[pyarg(any, default = "None")]
         pub socials: Option<PyDictRef>,
     }
+
+    #[derive(FromArgs, Debug)]
+    pub struct InfoInit {
+        #[pyarg(any, default)]
+        pub name: Option<String>,
+
+        #[pyarg(any, default)]
+        pub version: Option<String>,
+
+        #[pyarg(any, default)]
+        pub title: Option<String>,
+
+        #[pyarg(any, default)]
+        pub description: Option<String>,
+
+        // #[pyarg(any, default)]
+        // pub contributors: Option<Vec<Contributor>>,
+    }
+}
+
+fn validate_string_list(vm: &VirtualMachine, obj: &PyListRef, message: &str) {
+    if let Some(index) = not_string_index(obj) {
+        println!("[TRACE] index={} is not a 'str'", index);
+        panic_with_trace(vm, message)
+    }
+}
+
+fn validate_string(vm: &VirtualMachine, obj: &PyObjectRef, message: &str) -> String {
+    match as_string(obj) {
+        Some(res) => res,
+        None => {
+            panic_with_trace(vm, message);
+            "".to_owned()
+        }
+    }
+}
+
+fn as_string(obj: &PyObjectRef) -> Option<String> {
+    match obj.downcast_ref::<PyStr>() {
+        Some(v) => Some(v.to_string()),
+        None => None,
+    }
+}
+
+fn not_string_index(obj: &PyListRef) -> Option<usize> {
+    let mut res: Option<usize> = None;
+    obj.borrow_vec()
+        .iter()
+        .enumerate()
+        .for_each(|(index, object)| {
+            if !as_string(object).is_some() {
+                res = Some(index);
+                return;
+            }
+        });
+    res
+}
+
+fn panic_with_trace(vm: &VirtualMachine, message: &str) {
+    let frame = vm.current_frame().unwrap();
+    let location = frame.current_location();
+    println!("[TRACE] {}", message);
+    println!(
+        "[TRACE] executing in {}:{} at {}",
+        frame.code.source_path, location.row, location.column
+    );
+    panic!("")
 }
