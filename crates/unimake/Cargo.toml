@@ -5,6 +5,5 @@ edition = "2024"
 
 [dependencies]
 kit = { path = "../kit" }
-rustpython = { version = "0.4.0" , features = ["default"]}
-rustpython-vm = "0.4.0"
+rustpython = { version = "0.4.0", features = ["default"] }
 ahash = "0.8.11"

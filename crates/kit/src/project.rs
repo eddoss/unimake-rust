@@ -7,13 +7,88 @@ use rustpython_vm::PyObjectRef;
 mod _module {
     use super::{args, panic_with_trace};
     use core;
+    use rustpython::vm::builtins::PyCode;
     use rustpython::vm::builtins::{PyDict, PyDictRef, PyListRef, PyStr, PyStrRef};
     use rustpython::vm::common::lock::PyRwLock;
     use rustpython::vm::convert::ToPyObject;
     use rustpython::vm::types::{Constructor, DefaultConstructor, Initializer, Representable};
     use rustpython::vm::AsObject;
+    use rustpython::vm::PyObjectRef;
     use rustpython::vm::{pyclass, Py, PyPayload, PyRef, PyResult, VirtualMachine};
+    use rustpython_vm::convert::IntoObject;
+    use std::ops::Deref;
 
+    //////////////////////////////////////////////////////////////////
+    // Global container
+    //////////////////////////////////////////////////////////////////
+
+    #[pyattr(name = "__unimake__")]
+    fn __unimake__(vm: &VirtualMachine) -> PyDictRef {
+        let dict = vm.ctx.new_dict();
+        for key in ["builder", "is_builder_class", "instance"] {
+            match dict.set_item(vm.ctx.new_str(key).as_object(), vm.ctx.none(), vm) {
+                result => { vm.expect_pyresult(result, "") }
+            }
+        }
+        dict
+    }
+
+    mod global {
+        use super::*;
+        pub fn get(vm: &VirtualMachine, key: &str) -> PyResult<PyObjectRef> {
+            match vm.current_globals().get_item(key, vm) {
+                Err(_) => Err(vm.new_value_error(format!("Failed to get {MODULE_NAME}.__unimake__[{key}]")))?,
+                Ok(v) => Ok(v),
+            }
+        }
+
+        pub fn set(vm: &VirtualMachine, key: &str, value: impl Into<PyObjectRef>) -> PyResult<()> {
+            vm.current_globals().set_item(key, value.into_object(), vm)
+        }
+    }
+
+    //////////////////////////////////////////////////////////////////
+    // Decorators
+    //////////////////////////////////////////////////////////////////
+
+    #[pyfunction(name = "init")]
+    fn init(object: PyObjectRef, vm: &VirtualMachine) -> PyResult<()> {
+        if !object.is_callable() {
+            return Err(vm.new_type_error("Failed to decorate not callable".to_string()));
+        }
+
+        let is_class = match object.class().name().as_ref() {
+            v @ ("type" | "function") => v == "type",
+            _ => {
+                return Err(vm.new_type_error("Use 'empty' only with classes of functions".to_string()));
+            }
+        };
+
+        global::set(vm, "builder", object.clone())?;
+        global::set(vm, "is_builder_class", vm.ctx.new_bool(is_class))?;
+
+        let mut callable = object.clone();
+        if is_class {
+            match object.get_attr("__init__", vm) {
+                Ok(v) => callable = v,
+                Err(e) => return Err(e),
+            }
+        }
+
+        // Get the code object (contains most signature info)
+        let code_obj = callable.get_attr("__code__", vm)?;
+        let code = code_obj.downcast_ref::<PyCode>().unwrap();
+
+        // Get raw signature information from a code object
+        code.varnames.deref()
+            .iter()
+            .take(usize::try_from(code.arg_count + code.kwonlyarg_count).unwrap())
+            .for_each(|&v| {
+                println!("{}", v.to_string())
+            });
+
+        Ok(())
+    }
 
     //////////////////////////////////////////////////////////////////
     // Contributor

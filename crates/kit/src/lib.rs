@@ -1,4 +1,4 @@
-use rustpython::vm::{PyRef, VirtualMachine, builtins::PyModule, pymodule};
+use rustpython::vm::{builtins::PyModule, pymodule, PyRef, VirtualMachine};
 use rustpython_vm::convert::ToPyObject;
 
 mod project;

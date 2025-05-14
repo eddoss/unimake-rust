@@ -2,9 +2,8 @@ use std::borrow::Cow::Borrowed;
 
 use ahash::HashMapExt;
 use kit;
-use rustpython::InterpreterConfig;
 use rustpython::vm::stdlib::StdlibMap;
-use rustpython_vm::convert::ToPyResult;
+use rustpython::InterpreterConfig;
 
 fn main() {
     // Create stdlib and emplace a framework to this.
@@ -31,9 +30,6 @@ fn main() {
     // Execute .unimake/project.py
     interpreter.enter(|vm| match vm.import("project", 0) {
         Ok(_) => {}
-        Err(e) => {
-            let text = e.to_pyresult(vm).unwrap().str(vm).unwrap().to_string();
-            println!("{text}")
-        }
+        Err(exception) => vm.print_exception(exception),
     });
 }

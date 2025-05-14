@@ -2178,7 +2178,6 @@ dependencies = [
  "ahash",
  "kit",
  "rustpython",
- "rustpython-vm",
 ]
 
 [[package]]
