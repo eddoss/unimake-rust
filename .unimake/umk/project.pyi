@@ -9,8 +9,8 @@ class Contributor:
 
     def __init__(
             self,
-            name: str = "",
-            emails: list[str] = "",
+            name: str = ...,
+            emails: list[str] = ...,
             socials: dict[str, str] = ...
     ): ...
 

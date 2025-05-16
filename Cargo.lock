@@ -634,6 +634,7 @@ dependencies = [
 name = "kit"
 version = "0.1.0"
 dependencies = [
+ "ahash",
  "core",
  "rustpython",
  "rustpython-vm",

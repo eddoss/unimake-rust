@@ -4,10 +4,10 @@ use rustpython_vm::builtins::{PyListRef, PyStr};
 use rustpython_vm::PyObjectRef;
 
 #[pymodule(name = "project")]
-mod _module {
+pub mod py {
     use super::{args, panic_with_trace};
+    use crate::state;
     use core;
-    use rustpython::vm::builtins::PyCode;
     use rustpython::vm::builtins::{PyDict, PyDictRef, PyListRef, PyStr, PyStrRef};
     use rustpython::vm::common::lock::PyRwLock;
     use rustpython::vm::convert::ToPyObject;
@@ -15,37 +15,6 @@ mod _module {
     use rustpython::vm::AsObject;
     use rustpython::vm::PyObjectRef;
     use rustpython::vm::{pyclass, Py, PyPayload, PyRef, PyResult, VirtualMachine};
-    use rustpython_vm::convert::IntoObject;
-    use std::ops::Deref;
-
-    //////////////////////////////////////////////////////////////////
-    // Global container
-    //////////////////////////////////////////////////////////////////
-
-    #[pyattr(name = "__unimake__")]
-    fn __unimake__(vm: &VirtualMachine) -> PyDictRef {
-        let dict = vm.ctx.new_dict();
-        for key in ["builder", "is_builder_class", "instance"] {
-            match dict.set_item(vm.ctx.new_str(key).as_object(), vm.ctx.none(), vm) {
-                result => { vm.expect_pyresult(result, "") }
-            }
-        }
-        dict
-    }
-
-    mod global {
-        use super::*;
-        pub fn get(vm: &VirtualMachine, key: &str) -> PyResult<PyObjectRef> {
-            match vm.current_globals().get_item(key, vm) {
-                Err(_) => Err(vm.new_value_error(format!("Failed to get {MODULE_NAME}.__unimake__[{key}]")))?,
-                Ok(v) => Ok(v),
-            }
-        }
-
-        pub fn set(vm: &VirtualMachine, key: &str, value: impl Into<PyObjectRef>) -> PyResult<()> {
-            vm.current_globals().set_item(key, value.into_object(), vm)
-        }
-    }
 
     //////////////////////////////////////////////////////////////////
     // Decorators
@@ -57,37 +26,17 @@ mod _module {
             return Err(vm.new_type_error("Failed to decorate not callable".to_string()));
         }
 
-        let is_class = match object.class().name().as_ref() {
-            v @ ("type" | "function") => v == "type",
-            _ => {
-                return Err(vm.new_type_error("Use 'empty' only with classes of functions".to_string()));
+        state::update(vm, |s| {
+            if s.project.builder.is_some() {
+                return Err(vm.new_type_error("Project 'init' must be used once".to_string()));
             }
-        };
-
-        global::set(vm, "builder", object.clone())?;
-        global::set(vm, "is_builder_class", vm.ctx.new_bool(is_class))?;
-
-        let mut callable = object.clone();
-        if is_class {
-            match object.get_attr("__init__", vm) {
-                Ok(v) => callable = v,
-                Err(e) => return Err(e),
-            }
-        }
-
-        // Get the code object (contains most signature info)
-        let code_obj = callable.get_attr("__code__", vm)?;
-        let code = code_obj.downcast_ref::<PyCode>().unwrap();
-
-        // Get raw signature information from a code object
-        code.varnames.deref()
-            .iter()
-            .take(usize::try_from(code.arg_count + code.kwonlyarg_count).unwrap())
-            .for_each(|&v| {
-                println!("{}", v.to_string())
-            });
-
-        Ok(())
+            s.project.builder = Some(object.clone());
+            s.project.custom = match object.class().name().as_ref() {
+                v @ ("type" | "function") => v == "type",
+                _ => return Err(vm.new_type_error("Use 'init' only with classes or functions".to_string())),
+            };
+            Ok(())
+        })
     }
 
     //////////////////////////////////////////////////////////////////
@@ -144,7 +93,7 @@ mod _module {
     impl Contributor {
         pub fn from_core(value: &core::Contributor) -> Self {
             Self {
-                core: PyRwLock::new(value.clone())
+                core: PyRwLock::new(value.clone()),
             }
         }
 
@@ -201,7 +150,8 @@ mod _module {
             core.socials.clear();
             value.into_iter().for_each(|(k, v)| {
                 let key = super::validate_string(vm, &k, "Contributor.socials: expect string key");
-                let value = super::validate_string(vm, &v, "Contributor.socials: expect string value");
+                let value =
+                    super::validate_string(vm, &v, "Contributor.socials: expect string value");
                 core.socials.insert(key, value);
             });
             Ok(())
@@ -260,7 +210,7 @@ mod _module {
         }
     }
 
-    #[pyclass(with(Constructor, Initializer, Representable))]
+    #[pyclass(flags(BASETYPE), with(Constructor, Initializer, Representable))]
     impl Info {
         #[pymethod]
         pub fn show(&self) {
@@ -317,9 +267,13 @@ mod _module {
 
         #[pygetset]
         pub fn contributors(&self, vm: &VirtualMachine) -> PyListRef {
-            let refs = self.core.read().contributors.iter().map(|v| {
-                Contributor::from_core(v).to_pyobject(&vm)
-            }).collect();
+            let refs = self
+                .core
+                .read()
+                .contributors
+                .iter()
+                .map(|v| Contributor::from_core(v).to_pyobject(&vm))
+                .collect();
             vm.ctx.new_list(refs)
         }
 
@@ -328,13 +282,18 @@ mod _module {
             self.core.write().contributors = value
                 .borrow_vec()
                 .iter()
-                .map(|v| {
-                    match v.downcast_ref::<Contributor>() {
-                        Some(obj) => obj.core.read().clone(),
-                        None => {
-                            panic_with_trace(vm, format!("{MODULE_NAME}.Info: expect Contributors, got {}", v.class().name()).as_str());
-                            core::Contributor::default()
-                        }
+                .map(|v| match v.downcast_ref::<Contributor>() {
+                    Some(obj) => obj.core.read().clone(),
+                    None => {
+                        panic_with_trace(
+                            vm,
+                            format!(
+                                "{MODULE_NAME}.Info: expect Contributors, got {}",
+                                v.class().name()
+                            )
+                                .as_str(),
+                        );
+                        core::Contributor::default()
                     }
                 })
                 .collect();
@@ -350,12 +309,12 @@ mod _module {
 }
 
 pub fn module(vm: &VirtualMachine) -> PyRef<PyModule> {
-    _module::make_module(vm)
+    py::make_module(vm)
 }
 
 mod args {
-    use rustpython_vm::builtins::PyDictRef;
-    use rustpython_vm::FromArgs;
+    use rustpython::vm::builtins::PyDictRef;
+    use rustpython::vm::FromArgs;
 
     #[derive(FromArgs, Debug)]
     pub struct ContributorInit {
@@ -382,7 +341,6 @@ mod args {
 
         #[pyarg(any, default)]
         pub description: Option<String>,
-
         // #[pyarg(any, default)]
         // pub contributors: Option<Vec<Contributor>>,
     }
