@@ -1,21 +1,21 @@
 use ahash::HashMapExt;
-use rustpython::vm::{builtins::PyModule, pymodule, PyRef, VirtualMachine};
-use rustpython_vm::convert::ToPyObject;
+use rustpython::vm::{PyRef, VirtualMachine, builtins::PyModule, pymodule};
+use rustpython_vm::class::PyClassImpl;
 use rustpython_vm::stdlib::StdlibMap;
 use std::borrow::Cow::Borrowed;
 
+pub mod basic;
 pub mod cli;
 pub mod project;
 pub mod state;
-pub mod utils;
 
 #[pymodule(name = "umk")]
 mod umk {}
 
 pub fn init(vm: &VirtualMachine) {
-    project::module(vm);
-    state::module(vm);
-    cli::module(vm);
+    state::Object::make_class(&vm.ctx);
+    project::make(vm);
+    cli::make(vm);
 }
 
 pub fn stdlib() -> StdlibMap {
@@ -26,23 +26,7 @@ pub fn stdlib() -> StdlibMap {
 
 pub fn package(vm: &VirtualMachine) -> PyRef<PyModule> {
     let root = umk::make_module(vm);
-    {
-        let module = state::module(vm);
-        root.dict()
-            .set_item(module.name.unwrap(), module.to_pyobject(vm), vm)
-            .expect("Failed to insert 'state' to framework");
-    }
-    {
-        let module = project::module(vm);
-        root.dict()
-            .set_item(module.name.unwrap(), module.to_pyobject(vm), vm)
-            .expect("Failed to insert 'project' to framework");
-    }
-    {
-        let module = cli::module(vm);
-        root.dict()
-            .set_item(module.name.unwrap(), module.to_pyobject(vm), vm)
-            .expect("Failed to insert 'cli' to framework");
-    }
+    basic::register::submodule(vm, &root, project::make(vm));
+    basic::register::submodule(vm, &root, cli::make(vm));
     root
 }

@@ -1,4 +1,4 @@
-from umk import project, cli
+from umk import cli, project
 
 
 @project.init
@@ -12,6 +12,7 @@ def _(p: project.Info):
     ]
 
 
-@cli.cmd
+# @cli.cmd("hi", message="world")
+@cli.cmd("bin")
 def _():
-    print("hello from cmd")
+    print("[python] cmd decorated")
