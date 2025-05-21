@@ -20,9 +20,13 @@ pub fn args_to<T: FromArgs>(inputs: FuncArgs, vm: &VirtualMachine) -> PyResult<T
         Err(error) => match error {
             ArgumentError::TooFewArgs => Err(vm.new_value_error("Too few args".to_string())),
             ArgumentError::TooManyArgs => Err(vm.new_value_error("Too many args".to_string())),
-            ArgumentError::InvalidKeywordArgument(_) => Err(vm.new_value_error("Invalid keyword arguments".to_string())),
-            ArgumentError::RequiredKeywordArgument(_) => Err(vm.new_value_error("Required keyword arguments".to_string())),
+            ArgumentError::InvalidKeywordArgument(_) => {
+                Err(vm.new_value_error("Invalid keyword arguments".to_string()))
+            }
+            ArgumentError::RequiredKeywordArgument(_) => {
+                Err(vm.new_value_error("Required keyword arguments".to_string()))
+            }
             ArgumentError::Exception(this) => Err(this),
-        }
+        },
     }
 }

@@ -1,3 +1,4 @@
+use crate::basic::Decorator;
 use rustpython::vm::PyRef;
 use rustpython::vm::VirtualMachine;
 use rustpython::vm::builtins::PyModule;
@@ -44,6 +45,17 @@ pub fn class<T: PyClassImpl + StaticType>(vm: &VirtualMachine, module: &PyRef<Py
         );
 }
 
+pub fn decorator<T: Decorator>(vm: &VirtualMachine, module: &PyRef<PyModule>) {
+    let module_name = module.name.unwrap();
+    let name = T::NAME;
+    module
+        .dict()
+        .set_item(T::NAME, T::METHOD.to_function().to_pyobject(vm), vm)
+        .expect(
+            format!("Failed to register decorator '{name}' in module '{module_name}'").as_str(),
+        );
+}
+
 pub fn function(
     vm: &VirtualMachine,
     module: &PyRef<PyModule>,
@@ -51,11 +63,8 @@ pub fn function(
     method: &'static PyMethodDef,
 ) {
     let module_name = module.name.unwrap();
-    let message = format!("Failed to register decorator '{name}' in module '{module_name}'");
     module
         .dict()
         .set_item(name, method.to_function().to_pyobject(vm), vm)
-        .expect(
-            format!("Failed to register decorator '{name}' in module '{module_name}'").as_str(),
-        );
+        .expect(format!("Failed to register function '{name}' in module '{module_name}'").as_str());
 }

@@ -7,13 +7,14 @@ use std::borrow::Cow::Borrowed;
 pub mod basic;
 pub mod cli;
 pub mod project;
-pub mod state;
+pub mod states;
 
 #[pymodule(name = "umk")]
 mod umk {}
 
 pub fn init(vm: &VirtualMachine) {
-    state::Object::make_class(&vm.ctx);
+    states::State::make_class(&vm.ctx);
+    states::cli::CommandInitializer::make_class(&vm.ctx);
     project::make(vm);
     cli::make(vm);
 }

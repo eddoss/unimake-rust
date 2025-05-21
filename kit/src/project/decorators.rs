@@ -1,6 +1,6 @@
 use crate::basic;
-use crate::state::Accessor;
-use crate::state::Entrypoint;
+use crate::states::Accessor;
+use crate::states::Entrypoint;
 use rustpython::vm::function::FuncArgs;
 use rustpython::vm::function::{PyMethodDef, PyMethodFlags};
 use rustpython::vm::{PyResult, VirtualMachine};

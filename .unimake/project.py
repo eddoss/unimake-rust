@@ -12,7 +12,19 @@ def _(p: project.Info):
     ]
 
 
-# @cli.cmd("hi", message="world")
 @cli.cmd("bin")
-def _():
-    print("[python] cmd decorated")
+@cli.opt(str, "src", default="src/name")
+@cli.opt(str, "dst", default="dst/name")
+def _(src: str, dst: str):
+    print(f"[python] Copy file from src={src} to dst={dst}")
+
+# def foo(output: str):
+#     print(f"[python] build binary in {output}")
+
+
+# foo = cli.cmd("foo")(cli.opt)(str, "output", "o")(foo)
+
+# cli.cmd("foo")           -> cmd.inner
+# cmd.inner(cli.opt)       -> cli.opt
+# cli.opt(str, "out", "o") -> opt.inner
+# opt.inner(foo)           -> foo
