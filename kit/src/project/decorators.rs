@@ -4,8 +4,8 @@ use crate::states::Entrypoint;
 use rustpython::vm::function::FuncArgs;
 use rustpython::vm::function::{PyMethodDef, PyMethodFlags};
 use rustpython::vm::{PyResult, VirtualMachine};
-use rustpython_vm::PyRef;
 use rustpython_vm::builtins::PyModule;
+use rustpython_vm::PyRef;
 
 pub struct Init {}
 

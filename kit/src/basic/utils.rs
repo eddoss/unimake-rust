@@ -1,3 +1,4 @@
+use rustpython_vm::builtins::PyTypeRef;
 use rustpython_vm::class::StaticType;
 use rustpython_vm::function::{ArgumentError, FromArgs, FuncArgs};
 use rustpython_vm::{PyObjectRef, PyPayload, PyRef, PyResult, VirtualMachine};
@@ -29,4 +30,13 @@ pub fn args_to<T: FromArgs>(inputs: FuncArgs, vm: &VirtualMachine) -> PyResult<T
             ArgumentError::Exception(this) => Err(this),
         },
     }
+}
+
+pub fn is_same_type(vm: &VirtualMachine, a: &PyTypeRef, b: &PyTypeRef) -> bool {
+    if a.name().to_string() == b.name().to_string() {
+        let module_a = a.module(vm).str(vm).unwrap().to_string();
+        let module_b = b.module(vm).str(vm).unwrap().to_string();
+        return module_a == module_b;
+    }
+    false
 }

@@ -1,27 +1,42 @@
 use crate::basic;
-use ahash::HashMap;
 use rustpython::vm::PyObjectRef;
-use rustpython_vm::builtins::{PyModule, PyTypeRef};
-use rustpython_vm::common::lock::PyRwLock;
-use rustpython_vm::compiler::parser::ast::located::Arguments;
-use rustpython_vm::types::{Constructor, DefaultConstructor, Initializer};
-use rustpython_vm::{PyPayload, PyRef, PyResult, VirtualMachine, pyclass};
+use rustpython::vm::PyPayload;
+use rustpython::vm::PyRef;
+use rustpython::vm::PyResult;
+use rustpython::vm::VirtualMachine;
+use rustpython::vm::builtins::{PyBool, PyFloat, PyInt, PyModule, PyStr, PyTypeRef};
+use rustpython::vm::class::StaticType;
+use rustpython::vm::common::lock::PyRwLock;
+use rustpython::vm::pyclass;
+use rustpython::vm::types::{Constructor, DefaultConstructor, Initializer};
+use std::collections::HashMap;
 
 #[derive(Debug, Clone)]
 pub struct Opt {
-    pub name: String,
-    pub short: String,
+    pub long: String,
+    pub short: Option<char>,
     pub class: PyTypeRef,
+    pub variable: Option<String>,
     pub default: PyObjectRef,
+    pub help: Option<String>,
 }
 
 impl Opt {
-    pub fn new(name: String, short: String, class: PyTypeRef, default: PyObjectRef) -> Self {
+    pub fn new(
+        class: PyTypeRef,
+        long: String,
+        short: Option<char>,
+        variable: Option<String>,
+        default: PyObjectRef,
+        help: Option<String>,
+    ) -> Self {
         Self {
-            name,
+            long,
             short,
             class,
             default,
+            variable,
+            help,
         }
     }
 }
@@ -30,15 +45,25 @@ impl Opt {
 pub struct Arg {
     pub name: String,
     pub class: PyTypeRef,
+    pub variable: Option<String>,
     pub default: PyObjectRef,
+    pub help: Option<String>,
 }
 
 impl Arg {
-    pub fn new(name: String, class: PyTypeRef, default: PyObjectRef) -> Self {
+    pub fn new(
+        name: String,
+        class: PyTypeRef,
+        variable: Option<String>,
+        default: PyObjectRef,
+        help: Option<String>,
+    ) -> Self {
         Self {
             name,
             class,
+            variable,
             default,
+            help,
         }
     }
 }
@@ -47,25 +72,103 @@ impl Arg {
 pub struct Command {
     pub name: String,
     pub options: HashMap<String, Opt>,
-    pub arguments: HashMap<String, Arguments>,
+    pub arguments: HashMap<String, Arg>,
     pub function: Option<PyObjectRef>,
+    pub help: Option<String>,
+    types: Vec<PyTypeRef>,
 }
 
 impl Command {
-    pub fn named(name: String) -> Self {
+    pub fn add_option(
+        &mut self,
+        vm: &VirtualMachine,
+        long: String,
+        short: Option<char>,
+        class: PyTypeRef,
+        variable: Option<String>,
+        default: PyObjectRef,
+        help: Option<String>,
+    ) -> PyResult<()> {
+        if self.options.contains_key(&long) {
+            let msg = format!("CLI command option already exists: '{}'", long);
+            return Err(vm.new_value_error(msg));
+        }
+        let allowed = self
+            .types
+            .iter()
+            .find(|&x| basic::is_same_type(vm, x, &class))
+            .is_some();
+        if !allowed {
+            let msg = format!("CLI command option has unsupported type '{}'", class.name());
+            return Err(vm.new_type_error(msg));
+        }
+        self.options.insert(
+            long.clone(),
+            Opt::new(class, long, short, variable, default, help),
+        );
+        Ok(())
+    }
+
+    pub fn add_argument(
+        &mut self,
+        vm: &VirtualMachine,
+        name: String,
+        class: PyTypeRef,
+        variable: Option<String>,
+        default: PyObjectRef,
+        help: Option<String>,
+    ) -> PyResult<()> {
+        if self.arguments.contains_key(&name) {
+            let msg = format!("CLI command argument already exists: '{}'", name);
+            return Err(vm.new_value_error(msg));
+        }
+        let allowed = self
+            .types
+            .iter()
+            .find(|&x| basic::is_same_type(vm, x, &class))
+            .is_some();
+        if !allowed {
+            let msg = format!(
+                "CLI command argument has unsupported type '{}'",
+                class.name()
+            );
+            return Err(vm.new_type_error(msg));
+        }
+        self.arguments
+            .insert(name.clone(), Arg::new(name, class, variable, default, help));
+        Ok(())
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct CLI {
+    pub commands: HashMap<String, Command>,
+    pub types: Vec<PyTypeRef>,
+}
+
+impl Default for CLI {
+    fn default() -> Self {
         Self {
-            name,
-            ..Default::default()
+            commands: HashMap::new(),
+            types: vec![
+                PyStr::create_static_type(),
+                PyInt::create_static_type(),
+                PyFloat::create_static_type(),
+                PyBool::create_static_type(),
+            ],
         }
     }
 }
 
-#[derive(Debug, Default, Clone)]
-pub struct CLI {
-    pub commands: HashMap<String, Command>,
+impl CLI {
+    pub fn cmd(&self, name: String) -> Command {
+        Command {
+            name,
+            types: self.types.clone(),
+            ..Default::default()
+        }
+    }
 }
-
-impl CLI {}
 
 #[pyclass(module = false, name = "umk::cli::CommandInfo")]
 #[derive(Debug, PyPayload)]

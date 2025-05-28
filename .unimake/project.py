@@ -13,18 +13,7 @@ def _(p: project.Info):
 
 
 @cli.cmd("bin")
-@cli.opt(str, "src", default="src/name")
-@cli.opt(str, "dst", default="dst/name")
-def _(src: str, dst: str):
+@cli.opt(str, "src", default="src/name", help="Source file")
+@cli.opt(str, "dst", default="dst/name", help="Destination file path")
+def foo(src: str, dst: list[str]):
     print(f"[python] Copy file from src={src} to dst={dst}")
-
-# def foo(output: str):
-#     print(f"[python] build binary in {output}")
-
-
-# foo = cli.cmd("foo")(cli.opt)(str, "output", "o")(foo)
-
-# cli.cmd("foo")           -> cmd.inner
-# cmd.inner(cli.opt)       -> cli.opt
-# cli.opt(str, "out", "o") -> opt.inner
-# opt.inner(foo)           -> foo

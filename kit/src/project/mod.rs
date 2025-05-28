@@ -1,4 +1,4 @@
-use rustpython::vm::{PyRef, VirtualMachine, pymodule};
+use rustpython::vm::{pymodule, PyRef, VirtualMachine};
 use rustpython_vm::builtins::PyModule;
 
 pub mod contributor;
@@ -12,7 +12,7 @@ pub use info::Info;
 #[pymodule(name = "project")]
 mod module {}
 
-pub fn make(vm: &VirtualMachine) -> PyRef<PyModule> {
+pub fn init(vm: &VirtualMachine) -> PyRef<PyModule> {
     let result = module::make_module(vm);
     result.register::<Contributor>(vm);
     result.register::<Info>(vm);

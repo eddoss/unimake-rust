@@ -1,4 +1,3 @@
-import pathlib
 import typing as t
 
 
@@ -13,10 +12,6 @@ class Contributor:
             emails: list[str] = ...,
             socials: dict[str, str] = ...
     ): ...
-
-    def with_email(self, email: str) -> 'Contributor': ...
-
-    def with_social(self, email: str) -> 'Contributor': ...
 
 
 class Info:
@@ -34,28 +29,15 @@ class Info:
             description: str = "",
     ): ...
 
-    def contribute(
-            self,
-            name: str,
-            email: str | list[str],
-            **socials: str,
-    ): ...
-
-
-class Layout:
-    root: pathlib.Path = ...  # Project root directory
-    unimake: pathlib.Path = ...  # .unimake directory
-
 
 class Project:
     info: Info = ...
-    layout: Layout = ...
-
-
-ProjectBuilder = t.Callable[..., t.Any] | t.Callable[[Project], t.Any]
 
 
 def get() -> Project: ...
 
 
-def init(func: ProjectBuilder): ...
+Initializer = t.Callable[..., t.Any] | t.Callable[[Project], t.Any]
+
+
+def init(func: Initializer): ...
