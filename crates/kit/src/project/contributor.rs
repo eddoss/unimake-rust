@@ -3,13 +3,14 @@ use rustpython::vm::builtins::{PyDict, PyDictRef, PyListRef, PyModule, PyStr, Py
 use rustpython::vm::common::lock::PyRwLock;
 use rustpython::vm::convert::ToPyObject;
 use rustpython::vm::types::{Constructor, DefaultConstructor, Initializer, Representable};
-use rustpython::vm::{AsObject, FromArgs, Py, PyPayload, PyResult, pyclass};
+use rustpython::vm::{pyclass, AsObject, FromArgs, Py, PyPayload, PyResult};
 use rustpython::vm::{PyRef, VirtualMachine};
+use umk;
 
 #[pyclass(module = false, name = "Contributor")]
 #[derive(Debug, PyPayload)]
 pub struct Contributor {
-    pub core: PyRwLock<core::Contributor>,
+    pub core: PyRwLock<umk::Contributor>,
 }
 
 impl basic::Registerable for Contributor {
@@ -21,7 +22,7 @@ impl basic::Registerable for Contributor {
 impl Default for Contributor {
     fn default() -> Self {
         Contributor {
-            core: PyRwLock::new(core::Contributor::default()),
+            core: PyRwLock::new(umk::Contributor::default()),
         }
     }
 }
@@ -51,7 +52,7 @@ impl Initializer for Contributor {
     type Args = InitArgs;
 
     fn init(zelf: PyRef<Self>, args: Self::Args, vm: &VirtualMachine) -> PyResult<()> {
-        let mut target = core::Contributor::default();
+        let mut target = umk::Contributor::default();
         target.name = args.name.unwrap_or_default();
         target.emails = args.emails.unwrap_or_default();
         match args.socials {
@@ -71,7 +72,7 @@ impl Initializer for Contributor {
 
 #[pyclass(with(Constructor, Initializer, Representable))]
 impl Contributor {
-    pub fn from_core(value: &core::Contributor) -> Self {
+    pub fn from_core(value: &umk::Contributor) -> Self {
         Self {
             core: PyRwLock::new(value.clone()),
         }

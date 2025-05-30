@@ -1,57 +1,31 @@
 use crate::basic::Decorator;
-use crate::states::cli::{Command, CommandInitializer};
 use crate::states::Accessor;
 use crate::states::Entrypoint;
+use crate::states::cli::{Command, CommandInitializer};
 use crate::{basic, states};
+use rustpython::vm::builtins::{PyModule, PyTypeRef};
+use rustpython::vm::convert::{ToPyObject, ToPyResult};
+use rustpython::vm::function::{FuncArgs, PyMethodDef, PyMethodFlags};
+use rustpython::vm::{FromArgs, PyObjectRef, PyRef};
 use rustpython::vm::{PyResult, VirtualMachine};
-use rustpython_vm::builtins::{PyCode, PyDict, PyFunction, PyModule, PyTypeRef};
-use rustpython_vm::convert::{ToPyObject, ToPyResult};
-use rustpython_vm::function::{FuncArgs, PyMethodDef, PyMethodFlags};
-use rustpython_vm::{AsObject, FromArgs, PyObjectRef, PyRef};
 use std::sync::Arc;
 
 //////////////////////////////////////////////////////////////////
 // Command
 //////////////////////////////////////////////////////////////////
 
-fn get_call_arguments_and_annotations(
-    callable: PyObjectRef,
-    vm: &VirtualMachine,
-) -> PyResult<()> {
-    let func = if callable.payload_is::<PyFunction>() {
-        callable
-            .downcast::<PyFunction>()
-            .expect("Failed to downcast callable to the `PyFunction`")
-    } else {
-        callable
-            .get_attr("__call__", vm)?
-            .downcast::<PyFunction>()
-            .expect("Failed to downcast callable.__call__ to the `PyFunction`")
-    };
-    // Get the __code__ attribute (Python-style access)
-    let code_obj = func.as_object().get_attr("__code__", vm)?;
-    let code = code_obj.downcast_ref::<PyCode>()
-        .ok_or_else(|| vm.new_type_error("Expected code object".to_string()))?;
-
-    // Get argument names from code object
-    let arg_names: Vec<String> = code.arg_names().kwonlyargs.iter()
-        .map(|s| s.to_string())
-        .collect();
-
-    // Get annotations (handle missing __annotations__)
-    let annotations = func
-        .as_object()
-        .get_attr("__annotations__", vm)
-        .unwrap_or_else(|_| vm.ctx.new_dict().into());
-    let annotations_dict = annotations.downcast::<PyDict>()
-        .expect("Annotations should be a dict");
-    for (_, v) in annotations_dict.clone() {
-        let a = v.str(vm)?;
-        vm.print((a,))?
-    }
-
-    println!("Args: {:?}", arg_names);
-    vm.print(("Annotations:", annotations_dict.clone()))
+fn get_call_arguments_and_annotations(callable: PyObjectRef, vm: &VirtualMachine) -> PyResult<()> {
+    let sig = basic::Signature::of(callable, vm)?;
+    sig.iter().for_each(|arg| {
+        println!(
+            "name={} kind={} index={} annotation={}",
+            arg.name(),
+            arg.kind(),
+            arg.index(),
+            arg.annotation().unwrap_or("".to_string())
+        );
+    });
+    Ok(())
 }
 
 #[derive(FromArgs, Debug, Clone)]

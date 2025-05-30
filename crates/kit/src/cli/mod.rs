@@ -1,5 +1,5 @@
 use crate::basic::Registerer;
-use rustpython::vm::{pymodule, PyRef, VirtualMachine};
+use rustpython::vm::{PyRef, VirtualMachine, pymodule};
 use rustpython_vm::builtins::PyModule;
 
 pub mod decorators;

@@ -1,7 +1,9 @@
 [workspace]
 resolver = "2"
 members = [
-    "core",
-    "kit",
-    "unimake",
+    "crates/global",
+    "crates/umk",
+    "crates/py",
+    "crates/kit",
+    "crates/app",
 ]

@@ -1,5 +1,6 @@
 use crate::basic;
 use crate::states::object::{Details, State};
+use global as G;
 use rustpython_vm::convert::ToPyObject;
 use rustpython_vm::{PyResult, VirtualMachine};
 
@@ -14,8 +15,14 @@ impl Entrypoint for VirtualMachine {
 }
 
 pub trait Accessor {
-    fn read<F: FnOnce(&Details) -> PyResult<()>>(&self, func: F) -> PyResult<()>;
-    fn update<F: FnOnce(&mut Details) -> PyResult<()>>(&self, func: F) -> PyResult<()>;
+    fn read<F>(&self, func: F) -> PyResult<()>
+    where
+        F: FnOnce(Details) -> PyResult<()>;
+
+    fn update<F>(&self, func: F) -> PyResult<()>
+    where
+        F: FnOnce(&mut Details) -> PyResult<()>;
+
     fn clone(&self) -> PyResult<Details>;
 }
 
@@ -30,28 +37,28 @@ impl<'a> EntryHolder<'a> {
 }
 
 impl<'a> Accessor for EntryHolder<'a> {
-    fn read<F: FnOnce(&Details) -> PyResult<()>>(&self, func: F) -> PyResult<()> {
-        let states = self.clone()?;
-        func(&states)?;
-        self.vm.builtins.set_attr(
-            "__unimake__",
-            State::from(states).to_pyobject(self.vm),
-            self.vm,
-        )
+    fn read<F>(&self, func: F) -> PyResult<()>
+    where
+        F: FnOnce(Details) -> PyResult<()>,
+    {
+        func(self.clone()?)
     }
 
-    fn update<F: FnOnce(&mut Details) -> PyResult<()>>(&self, func: F) -> PyResult<()> {
+    fn update<F>(&self, func: F) -> PyResult<()>
+    where
+        F: FnOnce(&mut Details) -> PyResult<()>,
+    {
         let mut states = self.clone()?;
         func(&mut states)?;
         self.vm.builtins.set_attr(
-            "__unimake__",
+            G::STATES_OBJECT_NAME,
             State::from(states).to_pyobject(self.vm),
             self.vm,
         )
     }
 
     fn clone(&self) -> PyResult<Details> {
-        let dict = self.vm.builtins.get_attr("__unimake__", self.vm)?;
+        let dict = self.vm.builtins.get_attr(G::STATES_OBJECT_NAME, self.vm)?;
         Ok(basic::cast::<State>(self.vm, dict)?.state.read().clone())
     }
 }

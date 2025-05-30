@@ -4,8 +4,8 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-core = { path = "../core" }
+global = { path = "../global" }
+umk = { path = "../umk" }
 ahash = "0.8.11"
 rustpython = { version = "0.4.0", features = ["default"] }
 rustpython-vm = "0.4.0"
-validator = { version = "0.20.0", features = ["derive"] }
