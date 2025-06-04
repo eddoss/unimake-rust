@@ -5,7 +5,7 @@ edition = "2024"
 
 [dependencies]
 kit = { path = "../kit" }
-py = { path = "../py" }
+executor = { path = "../executor" }
 umk = { path = "../umk" }
 rustpython = { version = "0.4.0", features = ["default"] }
 clap = { version = "4.5.38", features = ["unicode", "string", "derive", "wrap_help"] }

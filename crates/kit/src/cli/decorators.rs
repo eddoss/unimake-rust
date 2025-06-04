@@ -1,8 +1,8 @@
-use crate::basic::Decorator;
+use crate::py::Decorator;
+use crate::states::cli::{Command, CommandInitializer};
 use crate::states::Accessor;
 use crate::states::Entrypoint;
-use crate::states::cli::{Command, CommandInitializer};
-use crate::{basic, states};
+use crate::{py, states};
 use rustpython::vm::builtins::{PyModule, PyTypeRef};
 use rustpython::vm::convert::{ToPyObject, ToPyResult};
 use rustpython::vm::function::{FuncArgs, PyMethodDef, PyMethodFlags};
@@ -14,20 +14,6 @@ use std::sync::Arc;
 // Command
 //////////////////////////////////////////////////////////////////
 
-fn get_call_arguments_and_annotations(callable: PyObjectRef, vm: &VirtualMachine) -> PyResult<()> {
-    let sig = basic::Signature::of(callable, vm)?;
-    sig.iter().for_each(|arg| {
-        println!(
-            "name={} kind={} index={} annotation={}",
-            arg.name(),
-            arg.kind(),
-            arg.index(),
-            arg.annotation().unwrap_or("".to_string())
-        );
-    });
-    Ok(())
-}
-
 #[derive(FromArgs, Debug, Clone)]
 pub struct CmdArgs {
     #[pyarg(positional)]
@@ -36,12 +22,11 @@ pub struct CmdArgs {
 
 impl Cmd {
     fn decorate(inputs: FuncArgs, vm: &VirtualMachine) -> PyResult {
-        let options = Arc::new(basic::args_to::<CmdArgs>(inputs.clone(), vm)?);
+        let options = Arc::new(py::args_to::<CmdArgs>(inputs.clone(), vm)?);
         let inner = vm.new_function(
             "umk::cli::cmd::inner",
             move |args: FuncArgs, vm: &VirtualMachine| -> PyResult {
                 let func = args.args.get(0).unwrap().clone();
-                get_call_arguments_and_annotations(func.clone(), vm)?;
                 let mut cmd = get_command_initializer(func.clone(), vm)?;
                 cmd.name = options.name.clone();
                 cmd.function = Some(func.clone());
@@ -98,7 +83,7 @@ impl OptArgs {
 
 impl Opt {
     fn decorate(inputs: FuncArgs, vm: &VirtualMachine) -> PyResult {
-        let options = Arc::new(basic::args_to::<OptArgs>(inputs.clone(), vm)?);
+        let options = Arc::new(py::args_to::<OptArgs>(inputs.clone(), vm)?);
         // TODO validate short name, long name and var
         let inner = vm.new_function(
             "umk::cli::opt::inner",
@@ -146,7 +131,7 @@ pub struct ArgArgs {
 
 impl Arg {
     fn decorate(inputs: FuncArgs, vm: &VirtualMachine) -> PyResult {
-        let options = Arc::new(basic::args_to::<ArgArgs>(inputs.clone(), vm)?);
+        let options = Arc::new(py::args_to::<ArgArgs>(inputs.clone(), vm)?);
         let inner = vm.new_function(
             "umk::cli::arg::inner",
             move |args: FuncArgs, vm: &VirtualMachine| -> PyResult {
@@ -221,20 +206,20 @@ impl Decorator for Arg {
         PyMethodDef::new_const(Self::NAME, Self::decorate, PyMethodFlags::empty(), None);
 }
 
-impl basic::Registerable for Cmd {
+impl py::Registerable for Cmd {
     fn register(vm: &VirtualMachine, module: &PyRef<PyModule>) {
-        basic::register::decorator::<Self>(vm, module)
+        py::register::decorator::<Self>(vm, module)
     }
 }
 
-impl basic::Registerable for Opt {
+impl py::Registerable for Opt {
     fn register(vm: &VirtualMachine, module: &PyRef<PyModule>) {
-        basic::register::decorator::<Self>(vm, module)
+        py::register::decorator::<Self>(vm, module)
     }
 }
 
-impl basic::Registerable for Arg {
+impl py::Registerable for Arg {
     fn register(vm: &VirtualMachine, module: &PyRef<PyModule>) {
-        basic::register::decorator::<Self>(vm, module)
+        py::register::decorator::<Self>(vm, module)
     }
 }

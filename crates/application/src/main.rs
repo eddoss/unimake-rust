@@ -1,6 +1,6 @@
 mod cli;
 
-use py;
+use executor;
 use std::env;
 
 fn main() -> umk::Result<()> {
@@ -13,10 +13,10 @@ fn main() -> umk::Result<()> {
         }
     };
 
-    let machine = py::Machine::from(cwd)?;
-    machine.load()?;
-    machine.instantiate()?;
-    machine.read(|state, vm| {
+    let interpreter = executor::Interpreter::from(cwd)?;
+    interpreter.load()?;
+    interpreter.instantiate()?;
+    interpreter.read(|state, vm| {
         vm.print((state.clone().project.instance,))
     })
 

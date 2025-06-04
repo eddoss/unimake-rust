@@ -1,11 +1,11 @@
-use rustpython::vm::{PyRef, VirtualMachine, pymodule};
+use rustpython::vm::{pymodule, PyRef, VirtualMachine};
 use rustpython_vm::builtins::PyModule;
 
 pub mod contributor;
 pub mod decorators;
 pub mod info;
 
-use crate::basic::Registerer;
+use crate::py::Registerer;
 pub use contributor::Contributor;
 pub use info::Info;
 

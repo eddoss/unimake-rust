@@ -503,6 +503,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "dea2df4cf52843e0452895c455a1a2cfbb842a1e7329671acf418fdc53ed4c59"
 
 [[package]]
+name = "executor"
+version = "0.1.0"
+dependencies = [
+ "global",
+ "kit",
+ "rustpython",
+ "umk",
+]
+
+[[package]]
 name = "exitcode"
 version = "1.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -770,6 +780,7 @@ dependencies = [
  "global",
  "rustpython",
  "rustpython-vm",
+ "serde",
  "umk",
 ]
 
@@ -1276,16 +1287,6 @@ name = "puruspe"
 version = "0.2.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3804877ffeba468c806c2ad9057bbbae92e4b2c410c2f108baaa0042f241fa4c"
-
-[[package]]
-name = "py"
-version = "0.1.0"
-dependencies = [
- "global",
- "kit",
- "rustpython",
- "umk",
-]
 
 [[package]]
 name = "quote"
@@ -2439,8 +2440,8 @@ name = "unimake"
 version = "0.1.0"
 dependencies = [
  "clap 4.5.39",
+ "executor",
  "kit",
- "py",
  "rustpython",
  "serde",
  "umk",

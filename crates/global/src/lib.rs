@@ -1,31 +1,39 @@
-pub const PROJECT_NAME: &'static str = "unimake";
-pub const PROJECT_NAME_SHORT: &'static str = "umk";
-pub const PROJECT_VERSION: &'static str = env!("CARGO_PKG_VERSION");
+pub mod project {
+    pub const NAME: &'static str = "unimake";
+    pub const NAME_SHORT: &'static str = "umk";
+    pub const VERSION: &'static str = env!("CARGO_PKG_VERSION");
+}
 
-pub const WORKSPACE_FILE: &'static str = "unimake.py";
-pub const WORKSPACE_DIRECTORY: &'static str = ".unimake";
-pub const WORKSPACE_CACHE: &'static str = ".unimake/cache";
+pub mod workspace {
+    pub const FILE: &'static str = "unimake.py";
+    pub const DIRECTORY: &'static str = ".unimake";
+    pub const CACHE: &'static str = ".unimake/cache";
+}
 
-pub const SINGLE_SCRIPT_NAME: &'static str = "unimake";
-pub const SINGLE_SCRIPT_FILE: &'static str = WORKSPACE_FILE;
+pub mod script {
+    pub const SINGLE_NAME: &'static str = "unimake";
+    pub const SINGLE_FILE: &'static str = super::workspace::FILE;
 
-pub const SCRIPT_PROJECT_NAME: &'static str = "project";
-pub const SCRIPT_PROJECT_FILE: &'static str = ".unimake/project.py";
+    pub const PROJECT_NAME: &'static str = "project";
+    pub const PROJECT_FILE: &'static str = ".unimake/project.py";
 
-pub const SCRIPT_CONFIG_NAME: &'static str = "config";
-pub const SCRIPT_CONFIG_FILE: &'static str = ".unimake/config.py";
+    pub const CONFIG_NAME: &'static str = "config";
+    pub const CONFIG_FILE: &'static str = ".unimake/config.py";
 
-pub const SCRIPT_CLI_NAME: &'static str = "cli";
-pub const SCRIPT_CLI_FILE: &'static str = ".unimake/cli.py";
+    pub const CLI_NAME: &'static str = "cli";
+    pub const CLI_FILE: &'static str = ".unimake/cli.py";
 
-pub const SCRIPT_LAYOUT_NAME: &'static str = "layout";
-pub const SCRIPT_LAYOUT_FILE: &'static str = ".unimake/layout.py";
+    pub const LAYOUT_NAME: &'static str = "layout";
+    pub const LAYOUT_FILE: &'static str = ".unimake/layout.py";
 
-pub const SCRIPTS: [(&str, &str); 4] = [
-    (SCRIPT_CONFIG_NAME, SCRIPT_CONFIG_FILE),
-    (SCRIPT_LAYOUT_NAME, SCRIPT_LAYOUT_FILE),
-    (SCRIPT_PROJECT_NAME, SCRIPT_PROJECT_FILE),
-    (SCRIPT_CLI_NAME, SCRIPT_CLI_FILE),
-];
+    pub const LIST: [(&str, &str); 4] = [
+        (CONFIG_NAME, CONFIG_FILE),
+        (LAYOUT_NAME, LAYOUT_FILE),
+        (PROJECT_NAME, PROJECT_FILE),
+        (CLI_NAME, CLI_FILE),
+    ];
+}
 
-pub const STATES_OBJECT_NAME: &'static str = "__unimake__";
+pub mod state {
+    pub const CONTAINER: &'static str = "__unimake__";
+}

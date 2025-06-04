@@ -1,4 +1,4 @@
-use crate::basic;
+use crate::py;
 use rustpython::vm::builtins::{PyDict, PyDictRef, PyListRef, PyModule, PyStr, PyStrRef};
 use rustpython::vm::common::lock::PyRwLock;
 use rustpython::vm::convert::ToPyObject;
@@ -13,9 +13,9 @@ pub struct Contributor {
     pub core: PyRwLock<umk::Contributor>,
 }
 
-impl basic::Registerable for Contributor {
+impl py::Registerable for Contributor {
     fn register(vm: &VirtualMachine, module: &PyRef<PyModule>) {
-        basic::register::class::<Self>(vm, module)
+        py::register::class::<Self>(vm, module)
     }
 }
 
@@ -104,7 +104,7 @@ impl Contributor {
 
     #[pygetset(setter)]
     pub fn set_emails(&self, value: PyListRef, vm: &VirtualMachine) -> PyResult<()> {
-        basic::list::<PyStr, _>(vm, value.borrow_vec().iter(), "Expect list[str]")?;
+        py::list::<PyStr, _>(vm, value.borrow_vec().iter(), "Expect list[str]")?;
         self.core.write().emails = value
             .borrow_vec()
             .iter()
@@ -131,8 +131,8 @@ impl Contributor {
         core.socials.clear();
         for (key, val) in value {
             core.socials.insert(
-                basic::cast::<PyStr>(vm, key)?.to_string(),
-                basic::cast::<PyStr>(vm, val)?.to_string(),
+                py::cast::<PyStr>(vm, key)?.to_string(),
+                py::cast::<PyStr>(vm, val)?.to_string(),
             );
         }
         Ok(())

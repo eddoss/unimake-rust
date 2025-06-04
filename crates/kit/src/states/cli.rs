@@ -1,14 +1,14 @@
-use crate::basic;
-use rustpython::vm::PyObjectRef;
-use rustpython::vm::PyPayload;
-use rustpython::vm::PyRef;
-use rustpython::vm::PyResult;
-use rustpython::vm::VirtualMachine;
+use crate::py;
 use rustpython::vm::builtins::{PyBool, PyFloat, PyInt, PyModule, PyStr, PyTypeRef};
 use rustpython::vm::class::StaticType;
 use rustpython::vm::common::lock::PyRwLock;
 use rustpython::vm::pyclass;
 use rustpython::vm::types::{Constructor, DefaultConstructor, Initializer};
+use rustpython::vm::PyObjectRef;
+use rustpython::vm::PyPayload;
+use rustpython::vm::PyRef;
+use rustpython::vm::PyResult;
+use rustpython::vm::VirtualMachine;
 use std::collections::HashMap;
 
 #[derive(Debug, Clone)]
@@ -96,7 +96,7 @@ impl Command {
         let allowed = self
             .types
             .iter()
-            .find(|&x| basic::is_same_type(vm, x, &class))
+            .find(|&x| py::is_same_type(vm, x, &class))
             .is_some();
         if !allowed {
             let msg = format!("CLI command option has unsupported type '{}'", class.name());
@@ -125,7 +125,7 @@ impl Command {
         let allowed = self
             .types
             .iter()
-            .find(|&x| basic::is_same_type(vm, x, &class))
+            .find(|&x| py::is_same_type(vm, x, &class))
             .is_some();
         if !allowed {
             let msg = format!(
@@ -176,9 +176,9 @@ pub struct CommandInitializer {
     pub details: PyRwLock<Command>,
 }
 
-impl basic::Registerable for CommandInitializer {
+impl py::Registerable for CommandInitializer {
     fn register(vm: &VirtualMachine, module: &PyRef<PyModule>) {
-        basic::register::class::<Self>(vm, module)
+        py::register::class::<Self>(vm, module)
     }
 }
 

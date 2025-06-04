@@ -1,11 +1,11 @@
-use crate::basic;
 use crate::project::Contributor;
-use rustpython::vm::FromArgs;
+use crate::py;
 use rustpython::vm::builtins::{PyListRef, PyStr, PyStrRef};
 use rustpython::vm::common::lock::PyRwLock;
 use rustpython::vm::convert::ToPyObject;
 use rustpython::vm::types::{Constructor, DefaultConstructor, Initializer, Representable};
-use rustpython::vm::{Py, PyPayload, PyRef, PyResult, VirtualMachine, pyclass};
+use rustpython::vm::FromArgs;
+use rustpython::vm::{pyclass, Py, PyPayload, PyRef, PyResult, VirtualMachine};
 use rustpython_vm::builtins::PyModule;
 
 #[pyclass(module = false, name = "Info")]
@@ -14,9 +14,9 @@ pub struct Info {
     core: PyRwLock<umk::Info>,
 }
 
-impl basic::Registerable for Info {
+impl py::Registerable for Info {
     fn register(vm: &VirtualMachine, module: &PyRef<PyModule>) {
-        basic::register::class::<Self>(vm, module)
+        py::register::class::<Self>(vm, module)
     }
 }
 
@@ -148,7 +148,7 @@ impl Info {
         let mut core = self.core.write();
         core.contributors.clear();
         for object in value.borrow_vec().iter() {
-            let entry = basic::to::<Contributor>(vm, object, "Expect list[Contributor]")?;
+            let entry = py::to::<Contributor>(vm, object, "Expect list[Contributor]")?;
             core.contributors.push(entry.core.read().clone());
         }
         Ok(())

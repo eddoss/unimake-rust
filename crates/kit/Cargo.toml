@@ -9,3 +9,4 @@ umk = { path = "../umk" }
 ahash = "0.8.11"
 rustpython = { version = "0.4.0", features = ["default"] }
 rustpython-vm = "0.4.0"
+serde = { version = "1.0.219", features = ["derive"] }

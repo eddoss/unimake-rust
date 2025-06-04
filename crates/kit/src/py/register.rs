@@ -1,10 +1,10 @@
-use crate::basic::Decorator;
-use rustpython::vm::PyRef;
-use rustpython::vm::VirtualMachine;
+use crate::py::Decorator;
 use rustpython::vm::builtins::PyModule;
 use rustpython::vm::class::PyClassImpl;
 use rustpython::vm::convert::ToPyObject;
 use rustpython::vm::function::PyMethodDef;
+use rustpython::vm::PyRef;
+use rustpython::vm::VirtualMachine;
 use rustpython_vm::class::StaticType;
 
 pub trait Registerer {

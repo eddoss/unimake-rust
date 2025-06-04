@@ -1,6 +1,6 @@
-use crate::basic;
+use crate::py;
 use crate::states::object::{Details, State};
-use global as G;
+use global;
 use rustpython_vm::convert::ToPyObject;
 use rustpython_vm::{PyResult, VirtualMachine};
 
@@ -51,14 +51,14 @@ impl<'a> Accessor for EntryHolder<'a> {
         let mut states = self.clone()?;
         func(&mut states)?;
         self.vm.builtins.set_attr(
-            G::STATES_OBJECT_NAME,
+            global::state::CONTAINER,
             State::from(states).to_pyobject(self.vm),
             self.vm,
         )
     }
 
     fn clone(&self) -> PyResult<Details> {
-        let dict = self.vm.builtins.get_attr(G::STATES_OBJECT_NAME, self.vm)?;
-        Ok(basic::cast::<State>(self.vm, dict)?.state.read().clone())
+        let dict = self.vm.builtins.get_attr(global::state::CONTAINER, self.vm)?;
+        Ok(py::cast::<State>(self.vm, dict)?.state.read().clone())
     }
 }

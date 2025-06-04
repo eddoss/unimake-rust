@@ -1,12 +1,12 @@
 use rustpython_vm::builtins::{PyCode, PyDict, PyFunction};
 use rustpython_vm::{AsObject, PyObjectRef, PyResult, VirtualMachine};
+use serde::{Deserialize, Serialize};
 use std::fmt::Formatter;
-
 //////////////////////////////////////////////////////////////////
 // Argument kind
 //////////////////////////////////////////////////////////////////
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum ArgumentKind {
     Regular,
     Positional,
@@ -25,7 +25,7 @@ impl std::fmt::Display for ArgumentKind {
 // Argument
 //////////////////////////////////////////////////////////////////
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Argument {
     name: String,
     kind: ArgumentKind,
@@ -84,7 +84,7 @@ impl Argument {
 // Signature
 //////////////////////////////////////////////////////////////////
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Signature {
     args: Vec<Argument>,
 }

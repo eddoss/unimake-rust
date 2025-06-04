@@ -1,7 +1,7 @@
-use global as G;
-use kit::states;
+use kit;
 use kit::states::{Accessor, Entrypoint};
-use rustpython::vm::{Interpreter, PyResult, VirtualMachine};
+use rustpython::vm::Interpreter as PyInterpreter;
+use rustpython::vm::{PyResult, VirtualMachine};
 use rustpython::InterpreterConfig;
 use umk::Error;
 use umk::Result;
@@ -21,8 +21,8 @@ pub struct Workspace {
 impl Workspace {
     pub fn exists(&self) -> bool {
         match self.mode {
-            WorkspaceMode::File => self.root.join(G::WORKSPACE_FILE).exists(),
-            WorkspaceMode::Directory => self.root.join(G::WORKSPACE_DIRECTORY).exists(),
+            WorkspaceMode::File => self.root.join(global::workspace::FILE).exists(),
+            WorkspaceMode::Directory => self.root.join(global::workspace::DIRECTORY).exists(),
         }
     }
 
@@ -42,25 +42,25 @@ impl Workspace {
         match self.mode {
             WorkspaceMode::File => self
                 .root
-                .join(G::WORKSPACE_FILE),
+                .join(global::workspace::FILE),
             WorkspaceMode::Directory => self
                 .root
-                .join(G::WORKSPACE_DIRECTORY)
+                .join(global::workspace::DIRECTORY),
         }
     }
 }
 
-pub struct Machine {
-    interp: Interpreter,
+pub struct Interpreter {
+    interp: PyInterpreter,
     workspace: Workspace,
 }
 
-impl Machine {
+impl Interpreter {
     pub fn load(&self) -> Result {
         if self.workspace.is_directory() {
             self.exec(|vm| {
                 vm.insert_sys_path(vm.new_pyobj(self.workspace.path().to_str().unwrap()))?;
-                for (name, file) in G::SCRIPTS {
+                for (name, file) in global::script::LIST {
                     if self.workspace.root.join(file).exists() {
                         vm.import(name, 0)?;
                     }
@@ -70,7 +70,7 @@ impl Machine {
         } else {
             self.exec(|vm| {
                 vm.insert_sys_path(vm.new_pyobj(self.workspace.root.to_str().unwrap()))?;
-                vm.import(G::SINGLE_SCRIPT_NAME, 0)
+                vm.import(global::script::SINGLE_NAME, 0)
             })
         }
     }
@@ -83,20 +83,20 @@ impl Machine {
 
     pub fn read<F>(&self, f: F) -> Result
     where
-        F: Fn(states::Details, &VirtualMachine) -> PyResult<()>,
+        F: Fn(kit::states::Details, &VirtualMachine) -> PyResult<()>,
     {
         self.exec(|vm| vm.umk().read(|details| f(details, vm)))
     }
 
     pub fn update<F>(&self, f: F) -> Result
     where
-        F: Fn(&mut states::Details, &VirtualMachine) -> PyResult<()>,
+        F: Fn(&mut kit::states::Details, &VirtualMachine) -> PyResult<()>,
     {
         self.exec(|vm| vm.umk().update(|details| f(details, vm)))
     }
 }
 
-impl Machine {
+impl Interpreter {
     fn exec<F, P>(&self, f: F) -> Result
     where
         F: FnOnce(&VirtualMachine) -> PyResult<P>,
@@ -118,8 +118,8 @@ impl Machine {
     }
 }
 
-impl Machine {
-    pub fn from(root: std::path::PathBuf) -> Result<Machine> {
+impl Interpreter {
+    pub fn from(root: std::path::PathBuf) -> Result<Interpreter> {
         let mut workspace = Workspace {
             mode: WorkspaceMode::File,
             root,
@@ -131,23 +131,23 @@ impl Machine {
             return Err(Error::new(
                 format!(
                     "Workspace does not contains '{}' nor '{}'.",
-                    global::WORKSPACE_FILE,
-                    global::WORKSPACE_DIRECTORY
+                    global::workspace::FILE,
+                    global::workspace::DIRECTORY,
                 )
                     .as_str(),
             ));
         }
-        let machine = Self {
+        let result = Self {
             workspace,
             interp: InterpreterConfig::new()
                 .init_stdlib()
                 .init_hook(Box::new(|vm| vm.add_native_modules(kit::stdlib())))
                 .interpreter(),
         };
-        machine.exec(|vm| {
+        result.exec(|vm| {
             kit::init(vm)?;
             kit::states::setup(vm)
         })?;
-        Ok(machine)
+        Ok(result)
     }
 }
