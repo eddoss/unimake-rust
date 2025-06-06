@@ -1,13 +1,13 @@
 use crate::py::Registerer;
 use ahash::HashMapExt;
-use rustpython::vm::stdlib::StdlibMap;
 use rustpython::vm::PyResult;
-use rustpython::vm::{builtins::PyModule, pymodule, PyRef, VirtualMachine};
+use rustpython::vm::stdlib::StdlibMap;
+use rustpython::vm::{PyRef, VirtualMachine, builtins::PyModule, pymodule};
 use std::borrow::Cow::Borrowed;
 
-pub mod py;
 pub mod cli;
 pub mod project;
+pub mod py;
 pub mod states;
 
 #[pymodule(name = "umk")]

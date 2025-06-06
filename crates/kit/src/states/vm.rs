@@ -58,7 +58,10 @@ impl<'a> Accessor for EntryHolder<'a> {
     }
 
     fn clone(&self) -> PyResult<Details> {
-        let dict = self.vm.builtins.get_attr(global::state::CONTAINER, self.vm)?;
+        let dict = self
+            .vm
+            .builtins
+            .get_attr(global::state::CONTAINER, self.vm)?;
         Ok(py::cast::<State>(self.vm, dict)?.state.read().clone())
     }
 }

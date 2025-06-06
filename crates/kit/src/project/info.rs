@@ -1,11 +1,11 @@
 use crate::project::Contributor;
 use crate::py;
+use rustpython::vm::FromArgs;
 use rustpython::vm::builtins::{PyListRef, PyStr, PyStrRef};
 use rustpython::vm::common::lock::PyRwLock;
 use rustpython::vm::convert::ToPyObject;
 use rustpython::vm::types::{Constructor, DefaultConstructor, Initializer, Representable};
-use rustpython::vm::FromArgs;
-use rustpython::vm::{pyclass, Py, PyPayload, PyRef, PyResult, VirtualMachine};
+use rustpython::vm::{Py, PyPayload, PyRef, PyResult, VirtualMachine, pyclass};
 use rustpython_vm::builtins::PyModule;
 
 #[pyclass(module = false, name = "Info")]

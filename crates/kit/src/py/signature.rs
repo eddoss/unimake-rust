@@ -90,19 +90,19 @@ pub struct Signature {
 }
 
 impl Signature {
-    pub fn iter(&self) -> impl Iterator<Item=&Argument> {
+    pub fn iter(&self) -> impl Iterator<Item = &Argument> {
         self.args.iter()
     }
 
-    pub fn regular(&self) -> impl Iterator<Item=&Argument> {
+    pub fn regular(&self) -> impl Iterator<Item = &Argument> {
         self.args.iter().filter(|&a| a.is_regular())
     }
 
-    pub fn positional(&self) -> impl Iterator<Item=&Argument> {
+    pub fn positional(&self) -> impl Iterator<Item = &Argument> {
         self.args.iter().filter(|&a| a.is_positional())
     }
 
-    pub fn keyword(&self) -> impl Iterator<Item=&Argument> {
+    pub fn keyword(&self) -> impl Iterator<Item = &Argument> {
         self.args.iter().filter(|&a| a.is_keyword())
     }
 

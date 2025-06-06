@@ -1,7 +1,7 @@
 use crate::py::Decorator;
-use crate::states::cli::{Command, CommandInitializer};
 use crate::states::Accessor;
 use crate::states::Entrypoint;
+use crate::states::cli::{Command, CommandInitializer};
 use crate::{py, states};
 use rustpython::vm::builtins::{PyModule, PyTypeRef};
 use rustpython::vm::convert::{ToPyObject, ToPyResult};

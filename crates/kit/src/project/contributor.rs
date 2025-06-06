@@ -3,7 +3,7 @@ use rustpython::vm::builtins::{PyDict, PyDictRef, PyListRef, PyModule, PyStr, Py
 use rustpython::vm::common::lock::PyRwLock;
 use rustpython::vm::convert::ToPyObject;
 use rustpython::vm::types::{Constructor, DefaultConstructor, Initializer, Representable};
-use rustpython::vm::{pyclass, AsObject, FromArgs, Py, PyPayload, PyResult};
+use rustpython::vm::{AsObject, FromArgs, Py, PyPayload, PyResult, pyclass};
 use rustpython::vm::{PyRef, VirtualMachine};
 use umk;
 

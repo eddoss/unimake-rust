@@ -1,8 +1,8 @@
 use kit;
 use kit::states::{Accessor, Entrypoint};
+use rustpython::InterpreterConfig;
 use rustpython::vm::Interpreter as PyInterpreter;
 use rustpython::vm::{PyResult, VirtualMachine};
-use rustpython::InterpreterConfig;
 use umk::Error;
 use umk::Result;
 
@@ -40,12 +40,8 @@ impl Workspace {
 
     pub fn path(&self) -> std::path::PathBuf {
         match self.mode {
-            WorkspaceMode::File => self
-                .root
-                .join(global::workspace::FILE),
-            WorkspaceMode::Directory => self
-                .root
-                .join(global::workspace::DIRECTORY),
+            WorkspaceMode::File => self.root.join(global::workspace::FILE),
+            WorkspaceMode::Directory => self.root.join(global::workspace::DIRECTORY),
         }
     }
 }
@@ -76,9 +72,7 @@ impl Interpreter {
     }
 
     pub fn instantiate(&self) -> Result {
-        self.update(|state, vm| {
-            state.project.instantiate(vm)
-        })
+        self.update(|state, vm| state.project.instantiate(vm))
     }
 
     pub fn read<F>(&self, f: F) -> Result
@@ -134,7 +128,7 @@ impl Interpreter {
                     global::workspace::FILE,
                     global::workspace::DIRECTORY,
                 )
-                    .as_str(),
+                .as_str(),
             ));
         }
         let result = Self {

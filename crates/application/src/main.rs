@@ -1,24 +1,30 @@
+mod api;
 mod cli;
 
-use executor;
 use std::env;
 
 fn main() -> umk::Result<()> {
     let cwd = match env::current_dir() {
         Ok(v) => v,
         Err(e) => {
-            println!("Failed to get current directory !");
-            println!("{}", e.to_string());
+            eprintln!("Failed to get current working directory !");
+            eprintln!("{}", e.to_string());
             std::process::exit(1);
         }
     };
 
-    let interpreter = executor::Interpreter::from(cwd)?;
-    interpreter.load()?;
-    interpreter.instantiate()?;
-    interpreter.read(|state, vm| {
-        vm.print((state.clone().project.instance,))
-    })
+    let api = api::new(cwd);
+    let app = cli::new(api)?;
+    app.run()
+
+    // cli.run()
+
+    // let interpreter = executor::Interpreter::from(cwd)?;
+    // interpreter.load()?;
+    // interpreter.instantiate()?;
+    // interpreter.read(|state, vm| {
+    //     vm.print((state.clone().project.instance,))
+    // })
 
     // let mut graph = Arc::new(cli::Graph::default());
     // interpreter.exec(|vm| {

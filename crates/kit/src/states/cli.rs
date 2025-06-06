@@ -1,14 +1,14 @@
 use crate::py;
-use rustpython::vm::builtins::{PyBool, PyFloat, PyInt, PyModule, PyStr, PyTypeRef};
-use rustpython::vm::class::StaticType;
-use rustpython::vm::common::lock::PyRwLock;
-use rustpython::vm::pyclass;
-use rustpython::vm::types::{Constructor, DefaultConstructor, Initializer};
 use rustpython::vm::PyObjectRef;
 use rustpython::vm::PyPayload;
 use rustpython::vm::PyRef;
 use rustpython::vm::PyResult;
 use rustpython::vm::VirtualMachine;
+use rustpython::vm::builtins::{PyBool, PyFloat, PyInt, PyModule, PyStr, PyTypeRef};
+use rustpython::vm::class::StaticType;
+use rustpython::vm::common::lock::PyRwLock;
+use rustpython::vm::pyclass;
+use rustpython::vm::types::{Constructor, DefaultConstructor, Initializer};
 use std::collections::HashMap;
 
 #[derive(Debug, Clone)]
