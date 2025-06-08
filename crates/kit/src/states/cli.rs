@@ -1,15 +1,29 @@
 use crate::py;
-use rustpython::vm::PyObjectRef;
-use rustpython::vm::PyPayload;
-use rustpython::vm::PyRef;
-use rustpython::vm::PyResult;
-use rustpython::vm::VirtualMachine;
 use rustpython::vm::builtins::{PyBool, PyFloat, PyInt, PyModule, PyStr, PyTypeRef};
 use rustpython::vm::class::StaticType;
 use rustpython::vm::common::lock::PyRwLock;
 use rustpython::vm::pyclass;
 use rustpython::vm::types::{Constructor, DefaultConstructor, Initializer};
+use rustpython::vm::PyObjectRef;
+use rustpython::vm::PyPayload;
+use rustpython::vm::PyRef;
+use rustpython::vm::PyResult;
+use rustpython::vm::VirtualMachine;
 use std::collections::HashMap;
+
+fn class(t: &PyTypeRef) -> umk::ArgClass {
+    if t.fast_issubclass(PyStr::static_type()) {
+        umk::ArgClass::String
+    } else if t.fast_issubclass(PyInt::static_type()) {
+        umk::ArgClass::Integer
+    } else if t.fast_issubclass(PyFloat::static_type()) {
+        umk::ArgClass::Float
+    } else if t.fast_issubclass(PyBool::static_type()) {
+        umk::ArgClass::Boolean
+    } else {
+        umk::ArgClass::Custom
+    }
+}
 
 #[derive(Debug, Clone)]
 pub struct Opt {
@@ -19,6 +33,7 @@ pub struct Opt {
     pub variable: Option<String>,
     pub default: PyObjectRef,
     pub help: Option<String>,
+    pub required: bool,
 }
 
 impl Opt {
@@ -28,6 +43,7 @@ impl Opt {
         short: Option<char>,
         variable: Option<String>,
         default: PyObjectRef,
+        required: bool,
         help: Option<String>,
     ) -> Self {
         Self {
@@ -36,7 +52,20 @@ impl Opt {
             class,
             default,
             variable,
+            required,
             help,
+        }
+    }
+
+    fn to(&self) -> umk::Opt {
+        umk::Opt {
+            class: class(&self.class),
+            long: self.long.clone(),
+            short: self.short,
+            help: self.help.clone(),
+            required: self.required,
+            multiple: false,
+            variable: self.variable.clone(),
         }
     }
 }
@@ -66,6 +95,14 @@ impl Arg {
             help,
         }
     }
+
+    fn to(&self) -> umk::Arg {
+        umk::Arg {
+            class: class(&self.class),
+            name: self.name.clone(),
+            help: self.help.clone(),
+        }
+    }
 }
 
 #[derive(Debug, Default, Clone)]
@@ -79,6 +116,15 @@ pub struct Command {
 }
 
 impl Command {
+    fn to(&self) -> umk::Cmd {
+        umk::Cmd {
+            name: self.name.clone(),
+            help: self.help.clone(),
+            options: self.options.values().map(|o| o.to()).collect(),
+            arguments: self.arguments.values().map(|a| a.to()).collect(),
+        }
+    }
+
     pub fn add_option(
         &mut self,
         vm: &VirtualMachine,
@@ -88,6 +134,7 @@ impl Command {
         variable: Option<String>,
         default: PyObjectRef,
         help: Option<String>,
+        required: bool,
     ) -> PyResult<()> {
         if self.options.contains_key(&long) {
             let msg = format!("CLI command option already exists: '{}'", long);
@@ -104,7 +151,7 @@ impl Command {
         }
         self.options.insert(
             long.clone(),
-            Opt::new(class, long, short, variable, default, help),
+            Opt::new(class, long, short, variable, default, required, help),
         );
         Ok(())
     }
@@ -161,6 +208,13 @@ impl Default for CLI {
 }
 
 impl CLI {
+    pub fn to(&self) -> umk::Cli {
+        let mut result = umk::Cli::default();
+        result.nodes = self.commands.values().map(|c| c.to()).collect();
+        // TODO Links building is required
+        result
+    }
+
     pub fn cmd(&self, name: String) -> Command {
         Command {
             name,

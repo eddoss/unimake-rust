@@ -1,4 +1,3 @@
-use crate::py::Registerer;
 use ahash::HashMapExt;
 use rustpython::vm::PyResult;
 use rustpython::vm::stdlib::StdlibMap;

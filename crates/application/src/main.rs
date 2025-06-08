@@ -1,4 +1,3 @@
-mod api;
 mod cli;
 
 use std::env;
@@ -13,8 +12,7 @@ fn main() -> umk::Result<()> {
         }
     };
 
-    let api = api::new(cwd);
-    let app = cli::new(api)?;
+    let app = cli::new(cwd)?;
     app.run()
 
     // cli.run()

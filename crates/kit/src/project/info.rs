@@ -11,7 +11,7 @@ use rustpython_vm::builtins::PyModule;
 #[pyclass(module = false, name = "Info")]
 #[derive(Debug, PyPayload)]
 pub struct Info {
-    core: PyRwLock<umk::Info>,
+    core: PyRwLock<umk::ProjectInfo>,
 }
 
 impl py::Registerable for Info {
@@ -23,7 +23,7 @@ impl py::Registerable for Info {
 impl Default for Info {
     fn default() -> Self {
         Info {
-            core: PyRwLock::new(umk::Info::default()),
+            core: PyRwLock::new(umk::ProjectInfo::default()),
         }
     }
 }
@@ -56,7 +56,7 @@ impl Initializer for Info {
     type Args = InitArgs;
 
     fn init(zelf: PyRef<Self>, args: Self::Args, _: &VirtualMachine) -> PyResult<()> {
-        let mut target = umk::Info::default();
+        let mut target = umk::ProjectInfo::default();
         target.name = args.name.unwrap_or_default();
         target.version = args.version.unwrap_or_default();
         target.title = args.title.unwrap_or_default();

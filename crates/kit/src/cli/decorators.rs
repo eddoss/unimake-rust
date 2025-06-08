@@ -1,6 +1,6 @@
 use crate::py::Decorator;
-use crate::states::Accessor;
-use crate::states::Entrypoint;
+use crate::states::VmExtension;
+use crate::states::VmExtensionAccess;
 use crate::states::cli::{Command, CommandInitializer};
 use crate::{py, states};
 use rustpython::vm::builtins::{PyModule, PyTypeRef};
@@ -70,6 +70,9 @@ pub struct OptArgs {
 
     #[pyarg(any, optional, default = "None")]
     pub var: Option<String>,
+
+    #[pyarg(any, optional, default = "None")]
+    pub required: Option<bool>,
 }
 
 impl OptArgs {
@@ -98,6 +101,7 @@ impl Opt {
                     options.var.clone(),
                     options.default.clone().unwrap_or(vm.ctx.none()),
                     options.help.clone(),
+                    options.required.unwrap_or(false),
                 )?;
                 set_command_initializer(&func, cmd, vm)?;
                 func.to_pyresult(vm)

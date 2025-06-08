@@ -4,17 +4,17 @@ use global;
 use rustpython_vm::convert::ToPyObject;
 use rustpython_vm::{PyResult, VirtualMachine};
 
-pub trait Entrypoint {
-    fn umk(&self) -> impl Accessor;
+pub trait VmExtension {
+    fn umk(&self) -> impl VmExtensionAccess;
 }
 
-impl Entrypoint for VirtualMachine {
-    fn umk(&self) -> impl Accessor {
+impl VmExtension for VirtualMachine {
+    fn umk(&self) -> impl VmExtensionAccess {
         EntryHolder::new(self)
     }
 }
 
-pub trait Accessor {
+pub trait VmExtensionAccess {
     fn read<F>(&self, func: F) -> PyResult<()>
     where
         F: FnOnce(Details) -> PyResult<()>;
@@ -36,7 +36,7 @@ impl<'a> EntryHolder<'a> {
     }
 }
 
-impl<'a> Accessor for EntryHolder<'a> {
+impl<'a> VmExtensionAccess for EntryHolder<'a> {
     fn read<F>(&self, func: F) -> PyResult<()>
     where
         F: FnOnce(Details) -> PyResult<()>,

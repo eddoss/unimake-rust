@@ -1,6 +1,6 @@
 use crate::py;
-use crate::states::Accessor;
-use crate::states::Entrypoint;
+use crate::states::VmExtension;
+use crate::states::VmExtensionAccess;
 use rustpython::vm::function::FuncArgs;
 use rustpython::vm::function::{PyMethodDef, PyMethodFlags};
 use rustpython::vm::{PyResult, VirtualMachine};

@@ -30,4 +30,16 @@ impl Error {
             text: text.to_string(),
         }
     }
+
+    pub fn from_error(e: impl std::error::Error) -> Self {
+        Self {
+            text: e.to_string(),
+        }
+    }
+
+    pub fn from_io_error(e: &std::io::Error) -> Self {
+        Self {
+            text: e.to_string(),
+        }
+    }
 }

@@ -10,8 +10,8 @@ mod vm;
 pub use object::Details;
 pub use object::State;
 pub use project::Project;
-pub use vm::Accessor;
-pub use vm::Entrypoint;
+pub use vm::VmExtension;
+pub use vm::VmExtensionAccess;
 
 pub fn init(vm: &VirtualMachine) {
     State::make_class(&vm.ctx);
