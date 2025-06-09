@@ -7,7 +7,7 @@ pub mod project {
 pub mod workspace {
     pub const FILE: &'static str = "unimake.py";
     pub const DIRECTORY: &'static str = ".unimake";
-    pub const CACHE: &'static str = ".unicache";
+    pub const CACHE: &'static str = ".unimake/.cache";
 }
 
 pub mod script {

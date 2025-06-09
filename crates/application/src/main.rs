@@ -1,6 +1,9 @@
 mod cli;
 
+use std::cell::RefCell;
 use std::env;
+use std::rc::Rc;
+use workspace::Workspace;
 
 fn main() -> umk::Result<()> {
     let cwd = match env::current_dir() {
@@ -11,8 +14,28 @@ fn main() -> umk::Result<()> {
             std::process::exit(1);
         }
     };
-
-    let app = cli::new(cwd)?;
+    let workspace = {
+        if !Workspace::exists(&cwd) {
+            None
+        } else {
+            let keys = workspace::CacheKeys::default();
+            let cache_dir = cwd.join(global::workspace::CACHE);
+            let driver = workspace::FsCacheDriver::new(cache_dir);
+            let cache = workspace::Cache::new(keys, Rc::new(RefCell::new(driver)));
+            match Workspace::wrap(&cwd, cache) {
+                Ok(v) => Some(v),
+                Err(e) => {
+                    eprintln!("Failed to create workspace instance");
+                    eprintln!("{}", e.to_string());
+                    std::process::exit(1);
+                }
+            }
+        }
+    };
+    if let Some(w) = &workspace {
+        w.load()?;
+    }
+    let app = cli::Interface::new(workspace)?;
     app.run()
 
     // cli.run()

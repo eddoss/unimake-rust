@@ -1,5 +1,4 @@
 use kit::states::{VmExtension, VmExtensionAccess};
-use std::ops::Deref;
 mod cache;
 mod interpreter;
 mod mode;
@@ -71,6 +70,10 @@ impl Workspace {
 //////////////////////////////////////////////////////////////////
 
 impl Workspace {
+    pub fn exists(root: &PathBuf) -> bool {
+        Mode::from(root).is_some()
+    }
+
     pub fn load(&self) -> umk::Result {
         match self.mode {
             Mode::Single => self.interp.exec(|vm| {
@@ -91,18 +94,38 @@ impl Workspace {
     }
 
     pub fn instantiate(&self) -> umk::Result {
-        self.set(|state, vm| {
-            state.project.instantiate(vm)
-        })
+        self.set(|state, vm| state.project.instantiate(vm))
     }
 
-    pub fn cache(&self) -> umk::Result {
+    pub fn caches(&self) -> umk::Result {
         let mut cli = umk::Cli::default();
         self.get(|state, _| {
             cli = state.cli.to();
             Ok(())
         })?;
         self.cache.cli.set(cli)
+    }
+
+    pub fn cache(&self) -> &Cache {
+        &self.cache
+    }
+
+    pub fn cli(&self) -> umk::Result<umk::Cli> {
+        let mut result = umk::Cli::default();
+        self.get(|state, _| {
+            result = state.cli.to();
+            Ok(())
+        })?;
+        Ok(result)
+    }
+
+    pub fn call<F>(&self, command: Vec<String>, func: F) -> umk::Result
+    where
+        F: FnOnce(&kit::states::cli::Command, &VirtualMachine) -> PyResult<()>,
+    {
+        self.get(|state, vm| {
+            Ok(())
+        })
     }
 }
 

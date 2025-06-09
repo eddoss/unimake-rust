@@ -1,125 +1,128 @@
-use crate::cli::cmd::{PluginSub, ProjectSub, Root};
 use clap;
-use std::cell::RefCell;
-use std::path::PathBuf;
-use std::rc::Rc;
-
-pub fn new(cwd: PathBuf) -> umk::Result<Interface> {
-    let command = <Cli as clap::CommandFactory>::command();
-    let mut matches = command.clone().get_matches();
-    let cli = <Cli as clap::FromArgMatches>::from_arg_matches_mut(&mut matches)
-        .map_err(|e| umk::Error::new(e.to_string().as_str()))?;
-    Ok(Interface { cli, cwd })
-}
+use workspace::Workspace;
 
 pub struct Interface {
-    cli: Cli,
-    cwd: PathBuf,
+    workspace: Option<Workspace>,
+    root: clap::Command,
 }
 
 impl Interface {
-    pub fn run(&self) -> umk::Result {
-        match &self.cli.root {
-            Root::Plugin(c) => {
-                if let Some(sub) = &c.subcommand {
-                    match sub {
-                        PluginSub::List => println!("plugin/list"),
+    pub fn run(self) -> umk::Result {
+        match self.root.clone().get_matches().subcommand() {
+            Some(("cache", matches)) => {
+                match &self.workspace {
+                    None => Err(
+                        umk::Error::new(
+                            format!("Failed to generate, cache current working directory is not an {} project", global::project::NAME).as_str()
+                        )),
+                    Some(w) => {
+                        w.load()?;
+                        w.instantiate()?;
+                        w.caches()
                     }
                 }
             }
-            Root::Project(c) => {
-                if let Some(sub) = &c.subcommand {
-                    match sub {
-                        ProjectSub::Inspect => println!("project/inspect"),
-                        ProjectSub::Plugins => println!("project/plugins"),
-                        ProjectSub::Authors => println!("project/authors"),
-                    };
-                    return Ok(());
+            Some(("cli", matches)) => {
+                self.call(matches.clone())
+            }
+            _ => unreachable!("Unreachable subcommand"),
+        }
+    }
+
+    fn call(&self, matches: clap::ArgMatches) -> umk::Result {
+        if self.workspace.is_none() {
+            return Err(umk::Error::new("Failed to call CLI, no workspace found"));
+        }
+        let mut matches = matches;
+        let mut sequence = Vec::<(String, clap::ArgMatches)>::with_capacity(8);
+        loop {
+            match matches.subcommand() {
+                None => break,
+                Some((sub_cmd, sub_matches)) => {
+                    sequence.push((sub_cmd.to_string(), sub_matches.clone()));
+                    matches = sub_matches.clone();
                 }
             }
-            Root::Cli => {
-                println!("cli");
-            }
-            Root::Cache => {
-                let ws = self.workspace()?;
-                ws.load()?;
-                ws.instantiate()?;
-                return ws.cache();
-            }
+        }
+        let workspace = self.workspace.as_ref().unwrap();
+        for (name, matches) in sequence {
+            println!("{:?}", matches.get_one::<String>("src").unwrap())
         }
         Ok(())
     }
 }
 
-#[derive(clap::Parser)]
-#[command(
-    author = "Edward Sarkisyan <edw.sarkisyan@gmail.com>",
-    version = global::project::VERSION,
-    about = "Unimake (umk) is a `make` alternative based on Python syntax."
-)]
-struct Cli {
-    #[command(subcommand)]
-    root: cmd::Root,
-}
-
-mod cmd {
-    use clap;
-
-    #[derive(clap::Subcommand, Debug)]
-    pub enum Root {
-        /// Project management commands
-        #[command(arg_required_else_help(true))]
-        Project(Project),
-
-        /// Plugins management commands
-        #[command(arg_required_else_help(true))]
-        Plugin(Plugin),
-
-        /// Resolve project and cache CLI
-        Cache,
-
-        /// Project commands
-        #[command(arg_required_else_help(true))]
-        Cli,
-    }
-
-    #[derive(Debug, clap::Args)]
-    pub struct Project {
-        #[command(subcommand)]
-        pub subcommand: Option<ProjectSub>,
-    }
-
-    #[derive(clap::Subcommand, Debug)]
-    pub enum ProjectSub {
-        /// Shows project information
-        Inspect,
-
-        /// Shows plugins required by project
-        Plugins,
-
-        /// Shows project authors (contributors)
-        Authors,
-    }
-
-    #[derive(Debug, clap::Args)]
-    pub struct Plugin {
-        #[command(subcommand)]
-        pub subcommand: Option<PluginSub>,
-    }
-
-    #[derive(clap::Subcommand, Debug)]
-    pub enum PluginSub {
-        /// Lists installed plugins
-        List,
-    }
-}
-
 impl Interface {
-    fn workspace(&self) -> umk::Result<workspace::Workspace> {
-        let keys = workspace::CacheKeys::default();
-        let cache_dir = self.cwd.join(global::workspace::CACHE);
-        let driver = workspace::FsCacheDriver::new(cache_dir);
-        let cache = workspace::Cache::new(keys, Rc::new(RefCell::new(driver)));
-        workspace::Workspace::wrap(&self.cwd, cache)
+    pub fn new(workspace: Option<Workspace>) -> umk::Result<Self> {
+        let mut root = clap::Command::new(global::project::NAME)
+            .version(global::project::VERSION)
+            .author("Edward Sarkisyan <edw.sarkisyan@gmail.com>")
+            .about("Unimake (umk) is a `make` alternative based on Python")
+            .disable_help_subcommand(true)
+            .arg_required_else_help(true)
+            .subcommand(
+                clap::Command::new("cache")
+                    .about("Resolve project and cache all entries")
+            );
+        if let Some(w) = &workspace {
+            let graph = w.cli()?;
+            root = root.subcommand(build::cli(graph));
+        }
+        Ok(Self { workspace, root })
+    }
+}
+
+mod build {
+    use clap::value_parser;
+
+    pub fn cli(src: umk::Cli) -> clap::Command {
+        let children: Vec<clap::Command> = src.nodes.into_iter().map(|c| cmd(c)).collect();
+        clap::Command::new("cli")
+            .about("CLI declared in workspace")
+            .arg_required_else_help(true)
+            .disable_help_subcommand(true)
+            .subcommands(children)
+    }
+
+    pub fn cmd(src: umk::Cmd) -> clap::Command {
+        let options: Vec<clap::Arg> = src.options.into_iter().map(|o| opt(o)).collect();
+        let arguments: Vec<clap::Arg> = src.arguments.into_iter().map(|a| arg(a)).collect();
+        clap::Command::new(src.name)
+            .about(src.help.unwrap_or_default())
+            .args(options.iter().chain(arguments.iter()))
+    }
+
+    pub fn opt(src: umk::Opt) -> clap::Arg {
+        let name = if src.long != "" {
+            src.long.clone()
+        } else {
+            String::from(src.short.unwrap())
+        };
+        let mut result = clap::Arg::new(name)
+            .long(src.long)
+            .required(src.required)
+            .help(src.help.unwrap_or_default())
+            .value_parser(parser(src.class));
+        if let Some(v) = src.short {
+            result = result.short(v);
+        }
+        result
+    }
+
+    pub fn arg(src: umk::Arg) -> clap::Arg {
+        clap::Arg::new(src.name)
+            .required(true)
+            .help(src.help.unwrap_or_default())
+            .value_parser(parser(src.class))
+    }
+
+    fn parser(class: umk::ArgClass) -> clap::builder::ValueParser {
+        match class {
+            umk::ArgClass::String => value_parser!(String),
+            umk::ArgClass::Integer => value_parser!(i64).into(),
+            umk::ArgClass::Float => value_parser!(f64).into(),
+            umk::ArgClass::Boolean => value_parser!(bool).into(),
+            umk::ArgClass::Custom => value_parser!(String).into(),
+        }
     }
 }

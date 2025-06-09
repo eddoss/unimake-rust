@@ -1,7 +1,7 @@
 use kit;
+use rustpython::InterpreterConfig;
 use rustpython::vm::Interpreter as PyInterpreter;
 use rustpython::vm::{PyResult, VirtualMachine};
-use rustpython::InterpreterConfig;
 use umk::Error;
 use umk::Result;
 

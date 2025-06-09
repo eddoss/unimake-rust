@@ -222,6 +222,10 @@ impl CLI {
             ..Default::default()
         }
     }
+
+    pub fn find(sequence: Vec<String>) -> Option<Command> {
+        None
+    }
 }
 
 #[pyclass(module = false, name = "umk::cli::CommandInfo")]

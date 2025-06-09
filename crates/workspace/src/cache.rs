@@ -1,5 +1,5 @@
-use serde::de::DeserializeOwned;
 use serde::Serialize;
+use serde::de::DeserializeOwned;
 use std::cell::RefCell;
 use std::marker::PhantomData;
 use std::path::PathBuf;
