@@ -1,16 +1,18 @@
-from umk import cli, project
+# from umk import cli, project
+#
+#
+# @project.init
+# class Project(project.Info):
+#     def __init__(self):
+#         self.name = "gl"
+#         self.version = "0.1.0"
+#         self.title = "OpenGL"
+#         self.description = "Open Graphics Library for C"
+#         self.contributors = [
+#             project.Contributor("John Doe", ["jonh.doe@gmail.com"]),
+#         ]
 
-
-@project.init
-class Project(project.Info):
-    def __init__(self):
-        self.name = "gl"
-        self.version = "0.1.0"
-        self.title = "OpenGL"
-        self.description = "Open Graphics Library for C"
-        self.contributors = [
-            project.Contributor("John Doe", ["jonh.doe@gmail.com"]),
-        ]
+from umk import cli
 
 
 @cli.cmd("bin")

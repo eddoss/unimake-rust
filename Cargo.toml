@@ -1,9 +1,23 @@
-[workspace]
-resolver = "2"
-members = [
-    "crates/global",
-    "crates/umk",
-    "crates/kit",
-    "crates/application",
-    "crates/workspace",
-]
+[package]
+name = "unimake"
+version = "0.1.0"
+edition = "2024"
+
+[lib]
+name = "unisdk"
+path = "src/sdk/lib.rs"
+
+[[bin]]
+name = "unimake"
+path = "src/app/main.rs"
+
+
+
+[dependencies]
+clap = { version = "4.5.38", features = ["unicode", "string", "derive", "wrap_help"] }
+ahash = "0.8.11"
+rustpython = { version = "0.4.0", features = ["default"] }
+rustpython-vm = "0.4.0"
+itertools = "0.14.0"
+serde = { version = "1.0.219", features = ["derive"] }
+serde_json = "1.0.140"
