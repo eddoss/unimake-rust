@@ -3,6 +3,10 @@ use rustpython_vm::class::StaticType;
 use rustpython_vm::function::{ArgumentError, FromArgs, FuncArgs};
 use rustpython_vm::{PyObjectRef, PyPayload, PyRef, PyResult, VirtualMachine};
 
+//////////////////////////////////////////////////////////////////
+// Casts
+//////////////////////////////////////////////////////////////////
+
 pub fn cast<T: PyPayload + StaticType>(
     vm: &VirtualMachine,
     object: impl Into<PyObjectRef>,
@@ -32,6 +36,20 @@ pub fn args_to<T: FromArgs>(inputs: FuncArgs, vm: &VirtualMachine) -> PyResult<T
     }
 }
 
+pub fn to<T>(vm: &VirtualMachine, object: &PyObjectRef, message: &str) -> PyResult<PyRef<T>>
+where
+    T: PyPayload,
+{
+    match object.clone().downcast::<T>() {
+        Ok(res) => Ok(res),
+        Err(_) => Err(vm.new_type_error(message.to_string())),
+    }
+}
+
+//////////////////////////////////////////////////////////////////
+// Checkers
+//////////////////////////////////////////////////////////////////
+
 pub fn is_same_type(vm: &VirtualMachine, a: &PyTypeRef, b: &PyTypeRef) -> bool {
     if a.name().to_string() == b.name().to_string() {
         let module_a = a.module(vm).str(vm).unwrap().to_string();
@@ -39,4 +57,36 @@ pub fn is_same_type(vm: &VirtualMachine, a: &PyTypeRef, b: &PyTypeRef) -> bool {
         return module_a == module_b;
     }
     false
+}
+
+pub fn is_list<'a, T, I>(vm: &VirtualMachine, iter: I, message: &str) -> PyResult<()>
+where
+    I: Iterator<Item = &'a PyObjectRef>,
+    T: PyPayload,
+{
+    for object in iter {
+        is::<T>(vm, &object, message)?;
+    }
+    Ok(())
+}
+
+pub fn is<T>(vm: &VirtualMachine, object: &PyObjectRef, message: &str) -> PyResult<()>
+where
+    T: PyPayload,
+{
+    if object.downcast_ref::<T>().is_some() {
+        Ok(())
+    } else {
+        Err(vm.new_type_error(message.to_string()))
+    }
+}
+
+pub fn ok<T>(object: &PyObjectRef) -> Option<String>
+where
+    T: PyPayload,
+{
+    if !object.downcast_ref::<T>().is_some() {
+        return Some(object.class().name().to_string());
+    }
+    None
 }

@@ -1,0 +1,20 @@
+[package]
+name = "app"
+version = "0.1.0"
+edition = "2024"
+
+[[bin]]
+path = "main.rs"
+name = "unimake"
+
+[dependencies]
+global = { path = "../global" }
+sdk = { path = "../sdk" }
+plugin = { path = "../plugins/core" }
+plugin-cli = { path = "../plugins/cli" }
+ahash = "0.8.11"
+rustpython = { version = "0.4.0", features = ["default"] }
+rustpython-vm = "0.4.0"
+itertools = "0.14.0"
+clap = { version = "4.5.38", features = ["unicode", "string", "derive", "wrap_help"] }
+serde_json = "1.0.140"

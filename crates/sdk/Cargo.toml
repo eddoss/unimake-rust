@@ -1,0 +1,18 @@
+[package]
+name = "sdk"
+version = "0.1.0"
+edition = "2024"
+
+[lib]
+path = "lib.rs"
+
+[dependencies]
+global = { path = "../global" }
+clap = { version = "4.5.38", features = ["unicode", "string", "derive", "wrap_help"] }
+ahash = "0.8.11"
+rustpython = { version = "0.4.0", features = ["default"] }
+rustpython-vm = "0.4.0"
+itertools = "0.14.0"
+serde = { version = "1.0.219", features = ["derive"] }
+serde_json = "1.0.140"
+derive_more = { version = "2.0.1", features = ["full"] }

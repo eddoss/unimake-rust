@@ -1,0 +1,13 @@
+[package]
+name = "plugin"
+version = "0.1.0"
+edition = "2024"
+
+[lib]
+path = "lib.rs"
+
+[dependencies]
+sdk = { path = "../../sdk" }
+clap = { version = "4.5.38", features = ["unicode", "string", "derive", "wrap_help"] }
+rustpython = { version = "0.4.0", features = ["default"] }
+rustpython-vm = "0.4.0"
